@@ -164,17 +164,29 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
     }
 
     llama_set_n_threads(session->context, session->thread_count, session->thread_count);
-    llama_memory_clear(llama_get_memory(session->context), true);
+    llama_kv_cache_clear(session->context);
 
-    if (!tokens.empty()) {
-        llama_batch prompt_batch = llama_batch_get_one(const_cast<llama_token*>(tokens.data()), static_cast<int32_t>(tokens.size()));
-        const int32_t status = llama_decode(session->context, prompt_batch);
-        if (status != 0) {
-            std::ostringstream msg;
-            msg << "Gagal memproses prompt (status=" << status << ")";
-            throw std::runtime_error(msg.str());
+    auto evaluate_tokens = [&](const llama_token* data, int32_t count) {
+        if (count <= 0) {
+            return;
         }
-    }
+
+        const int32_t max_batch = std::max<int32_t>(1, static_cast<int32_t>(llama_n_batch(session->context)));
+        int32_t processed = 0;
+        while (processed < count) {
+            const int32_t chunk = std::min<int32_t>(max_batch, count - processed);
+            llama_batch batch = llama_batch_get_one(const_cast<llama_token*>(data + processed), chunk);
+            const int32_t status = llama_decode(session->context, batch);
+            if (status != 0) {
+                std::ostringstream msg;
+                msg << "Gagal memproses token (status=" << status << ")";
+                throw std::runtime_error(msg.str());
+            }
+            processed += chunk;
+        }
+    };
+
+    evaluate_tokens(tokens.data(), static_cast<int32_t>(tokens.size()));
 
     auto sampler_params = llama_sampler_chain_default_params();
     sampler_params.no_perf = true;
@@ -185,7 +197,11 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
 
     std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> sampler_guard(sampler, &llama_sampler_free);
     if (auto* greedy = llama_sampler_init_greedy()) {
-        llama_sampler_chain_add(sampler, greedy);
+        const bool added = llama_sampler_chain_add(sampler, greedy);
+        if (!added) {
+            llama_sampler_free(greedy);
+            throw std::runtime_error("Tidak dapat menambahkan sampler greedy.");
+        }
     } else {
         throw std::runtime_error("Tidak dapat membuat sampler greedy.");
     }
@@ -194,8 +210,10 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
     std::string completion;
     completion.reserve(static_cast<size_t>(max_tokens) * 4);
 
+    llama_token previous_token = tokens.empty() ? LLAMA_TOKEN_NULL : tokens.back();
+
     for (int generated = 0; generated < max_tokens; ++generated) {
-        const llama_token next = llama_sampler_sample(sampler, session->context, -1);
+        const llama_token next = llama_sampler_sample(sampler, session->context, previous_token);
 
         if (llama_vocab_is_eog(vocab, next)) {
             break;
@@ -204,13 +222,8 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         llama_sampler_accept(sampler, next);
         completion += tokenToString(vocab, next);
 
-        llama_batch next_batch = llama_batch_get_one(const_cast<llama_token*>(&next), 1);
-        const int32_t status = llama_decode(session->context, next_batch);
-        if (status != 0) {
-            std::ostringstream msg;
-            msg << "Gagal melakukan decoding token (status=" << status << ")";
-            throw std::runtime_error(msg.str());
-        }
+        evaluate_tokens(&next, 1);
+        previous_token = next;
     }
 
     return completion;
