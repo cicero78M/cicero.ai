@@ -10,7 +10,28 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/model_status_download_prompt"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+        android:importantForAccessibility="yes" />
+
+    <ProgressBar
+        android:id="@+id/downloadProgressIndicator"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:max="100"
+        android:progress="0"
+        android:visibility="gone"
+        android:contentDescription="@string/download_progress_content_description" />
+
+    <TextView
+        android:id="@+id/downloadProgressLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/download_progress_placeholder"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/modelDownloadButton"
@@ -28,7 +49,9 @@
         android:minHeight="56dp"
         android:gravity="top"
         android:inputType="textMultiLine"
-        android:maxLines="6" />
+        android:maxLines="6"
+        android:importantForAutofill="yes"
+        android:autofillHints="@string/prompt_autofill_hint" />
 
     <Button
         android:id="@+id/runButton"

@@ -5,6 +5,7 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.io.DEFAULT_BUFFER_SIZE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -33,7 +34,11 @@ class ModelAssetManager(private val context: Context) {
         context.assets.list("models")?.sorted()?.toList().orEmpty()
     }
 
-    suspend fun downloadModel(url: String, fileName: String): File = withContext(dispatcher) {
+    suspend fun downloadModel(
+        url: String,
+        fileName: String,
+        onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> }
+    ): File = withContext(dispatcher) {
         require(url.startsWith("http", ignoreCase = true)) {
             "URL harus menggunakan skema HTTP atau HTTPS"
         }
@@ -59,9 +64,19 @@ class ModelAssetManager(private val context: Context) {
                 throw IOException("Gagal mengunduh model. Kode respons: $code")
             }
 
+            val totalBytes = connection.contentLengthLong.takeIf { it > 0L }
             connection.inputStream.use { input ->
                 tempFile.outputStream().use { output ->
-                    input.copyTo(output)
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var downloaded = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        downloaded += read
+                        onProgress(downloaded, totalBytes)
+                    }
+                    output.flush()
                 }
             }
 

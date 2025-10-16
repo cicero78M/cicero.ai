@@ -9,6 +9,11 @@
     <string name="model_status_no_file">Model belum diunduh atau berkas hilang.</string>
     <string name="action_download_deepseek">deepseek-coder-1.3b-instruct.Q4_K_M.gguf</string>
     <string name="prompt_hint">Masukkan perintah</string>
+    <string name="prompt_autofill_hint">prompt</string>
     <string name="action_run_inference">Jalankan</string>
     <string name="inference_placeholder">Hasil inferensi akan tampil di sini.</string>
+    <string name="download_progress_placeholder">Menunggu informasi ukuran berkas…</string>
+    <string name="download_progress_content_description">Kemajuan unduhan model</string>
+    <string name="download_progress_with_total">Mengunduh %1$d%% (%2$s dari %3$s)</string>
+    <string name="download_progress_without_total">Mengunduh %1$s</string>
 </resources>
