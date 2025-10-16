@@ -9,8 +9,23 @@
         android:id="@+id/modelStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/model_status_loading"
+        android:text="@string/model_status_download_prompt"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+    <EditText
+        android:id="@+id/modelUrlInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="@string/model_url_hint"
+        android:inputType="textUri" />
+
+    <Button
+        android:id="@+id/downloadButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/action_download_model" />
 
     <EditText
         android:id="@+id/promptInput"
