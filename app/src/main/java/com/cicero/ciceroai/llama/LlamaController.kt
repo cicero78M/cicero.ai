@@ -12,16 +12,26 @@ class LlamaController(context: Context) {
     private var session: LlamaSession? = null
 
     suspend fun prepareSession(
-        assetName: String,
+        modelFile: File,
         threadCount: Int,
         contextSize: Int
     ): LlamaSession = withContext(dispatcher) {
-        session?.takeIf { it.assetName == assetName }?.let { return@withContext it }
+        session
+            ?.takeIf { it.modelFile.absolutePath == modelFile.absolutePath && it.modelFile.exists() }
+            ?.let { return@withContext it }
         session?.let { LlamaBridge.nativeRelease(it.handle) }
 
-        val modelFile = assetManager.copyModelIfNeeded(assetName)
         val handle = LlamaBridge.nativeInit(modelFile.absolutePath, threadCount, contextSize)
-        return@withContext LlamaSession(handle, assetName, modelFile).also { session = it }
+        return@withContext LlamaSession(handle, modelFile).also { session = it }
+    }
+
+    suspend fun prepareSessionFromAsset(
+        assetName: String,
+        threadCount: Int,
+        contextSize: Int
+    ): LlamaSession {
+        val modelFile = assetManager.copyModelIfNeeded(assetName)
+        return prepareSession(modelFile, threadCount, contextSize)
     }
 
     suspend fun runInference(prompt: String, maxTokens: Int): String = withContext(dispatcher) {
@@ -30,6 +40,8 @@ class LlamaController(context: Context) {
     }
 
     suspend fun listBundledModels(): List<String> = assetManager.listBundledModels()
+
+    suspend fun downloadModel(url: String, fileName: String): File = assetManager.downloadModel(url, fileName)
 
     fun release() {
         session?.let {
@@ -41,6 +53,5 @@ class LlamaController(context: Context) {
 
 data class LlamaSession(
     val handle: Long,
-    val assetName: String,
     val modelFile: File
 )
