@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Cicero.AI</string>
+    <string name="model_status_ready">Model siap digunakan</string>
+    <string name="model_status_loading">Menyalin model ke penyimpanan internal…</string>
+    <string name="prompt_hint">Masukkan perintah</string>
+    <string name="action_run_inference">Jalankan</string>
+    <string name="inference_placeholder">Hasil inferensi akan tampil di sini.</string>
+    <string name="asset_model_name">DeepSeek-Coder 1.3B-Instruct.Q4_K_M.gguf</string>
 </resources>
