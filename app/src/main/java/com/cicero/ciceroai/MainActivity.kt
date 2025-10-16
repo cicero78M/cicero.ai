@@ -28,14 +28,13 @@ class MainActivity : AppCompatActivity() {
         controller = LlamaController(this)
 
         binding.runButton.isEnabled = false
-        binding.modelUrlInput.setText(preferences.getString(KEY_LAST_URL, ""))
 
-        binding.downloadButton.setOnClickListener {
-            val url = binding.modelUrlInput.text?.toString()?.trim().orEmpty()
-            if (url.isEmpty()) {
-                binding.modelUrlInput.error = getString(R.string.model_url_hint)
+        binding.modelDownloadButton.setOnClickListener {
+            val savedModel = loadSavedModelFile()
+            if (savedModel != null) {
+                prepareModel(savedModel)
             } else {
-                startDownload(url)
+                startDownload(MODEL_URL)
             }
         }
 
@@ -86,27 +85,23 @@ class MainActivity : AppCompatActivity() {
         val fileName = resolveFileName(url)
         downloadJob?.cancel()
         downloadJob = lifecycleScope.launch {
-            binding.modelUrlInput.error = null
-            binding.downloadButton.isEnabled = false
-            binding.modelUrlInput.isEnabled = false
+            binding.modelDownloadButton.isEnabled = false
             val wasInferenceEnabled = binding.runButton.isEnabled
             binding.runButton.isEnabled = false
             binding.modelStatus.text = getString(R.string.model_status_downloading)
 
             try {
                 val modelFile = controller.downloadModel(url, fileName)
-                saveModelReference(modelFile, url)
+                saveModelReference(modelFile)
                 binding.modelStatus.text = getString(R.string.model_status_download_success, modelFile.name)
                 prepareModel(modelFile)
             } catch (error: Exception) {
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
                 binding.modelStatus.text = getString(R.string.model_status_download_failed, message)
-                binding.modelUrlInput.error = message
                 binding.runButton.isEnabled = wasInferenceEnabled
                 clearModelReference()
             } finally {
-                binding.downloadButton.isEnabled = true
-                binding.modelUrlInput.isEnabled = true
+                binding.modelDownloadButton.isEnabled = true
             }
         }
     }
@@ -141,10 +136,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveModelReference(file: File, url: String) {
+    private fun saveModelReference(file: File) {
         preferences.edit()
             .putString(KEY_MODEL_PATH, file.absolutePath)
-            .putString(KEY_LAST_URL, url)
             .apply()
     }
 
@@ -169,6 +163,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREF_NAME = "cicero_model_storage"
         private const val KEY_MODEL_PATH = "model_path"
-        private const val KEY_LAST_URL = "last_url"
+        private const val MODEL_URL = "https://huggingface.co/TheBloke/deepseek-coder-1.3b-instruct-GGUF/resolve/main/deepseek-coder-1.3b-instruct.Q4_K_M.gguf"
     }
 }
