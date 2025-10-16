@@ -2,13 +2,12 @@
     <string name="app_name">Cicero.AI</string>
     <string name="model_status_ready">Model %1$s siap digunakan</string>
     <string name="model_status_loading">Menyiapkan model %1$s…</string>
-    <string name="model_status_download_prompt">Model belum tersedia. Masukkan URL lalu unduh.</string>
+    <string name="model_status_download_prompt">Model belum tersedia. Ketuk tombol di bawah untuk mengunduh.</string>
     <string name="model_status_downloading">Mengunduh model…</string>
     <string name="model_status_download_success">Unduhan selesai: %1$s</string>
     <string name="model_status_download_failed">Gagal mengunduh model: %1$s</string>
     <string name="model_status_no_file">Model belum diunduh atau berkas hilang.</string>
-    <string name="model_url_hint">URL model (http/https)</string>
-    <string name="action_download_model">Unduh Model</string>
+    <string name="action_download_deepseek">deepseek-coder-1.3b-instruct.Q4_K_M.gguf</string>
     <string name="prompt_hint">Masukkan perintah</string>
     <string name="action_run_inference">Jalankan</string>
     <string name="inference_placeholder">Hasil inferensi akan tampil di sini.</string>
