@@ -4,6 +4,29 @@ project(cicero_llama LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable the native llama.cpp implementation and its dependencies.
+
+include(FetchContent)
+
+# Fetch a known-good revision of llama.cpp.  We disable optional
+# components that are not needed for the Android bridge to keep build
+# times and binary size manageable.
+set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_SERVER_GUI OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    llama_cpp
+    GIT_REPOSITORY https://github.com/ggml-org/llama.cpp.git
+    GIT_TAG 1bb4f43380944e94c9a86e305789ba103f5e62bd
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(llama_cpp)
+
 add_library(
     cicero_llama
     SHARED
@@ -18,8 +41,12 @@ find_library(
 target_link_libraries(
     cicero_llama
     PRIVATE
+    llama
     ${log-lib}
 )
 
-# TODO: Tambahkan sumber asli llama.cpp serta dependensinya di sini
-# ketika Anda siap mengintegrasikannya dengan native build.
+target_include_directories(
+    cicero_llama
+    PRIVATE
+    ${llama_cpp_SOURCE_DIR}/include
+)
