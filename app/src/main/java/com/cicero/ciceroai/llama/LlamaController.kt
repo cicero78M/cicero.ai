@@ -41,7 +41,11 @@ class LlamaController(context: Context) {
 
     suspend fun listBundledModels(): List<String> = assetManager.listBundledModels()
 
-    suspend fun downloadModel(url: String, fileName: String): File = assetManager.downloadModel(url, fileName)
+    suspend fun downloadModel(
+        url: String,
+        fileName: String,
+        onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> }
+    ): File = assetManager.downloadModel(url, fileName, onProgress)
 
     fun release() {
         session?.let {

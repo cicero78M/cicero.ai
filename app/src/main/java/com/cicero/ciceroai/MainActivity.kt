@@ -2,13 +2,18 @@ package com.cicero.ciceroai
 
 import android.net.Uri
 import android.os.Bundle
+import android.text.format.Formatter
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.cicero.ciceroai.databinding.ActivityMainBinding
 import com.cicero.ciceroai.llama.LlamaController
 import java.io.File
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -89,9 +94,18 @@ class MainActivity : AppCompatActivity() {
             val wasInferenceEnabled = binding.runButton.isEnabled
             binding.runButton.isEnabled = false
             binding.modelStatus.text = getString(R.string.model_status_downloading)
+            binding.downloadProgressIndicator.isIndeterminate = true
+            binding.downloadProgressIndicator.progress = 0
+            binding.downloadProgressIndicator.isVisible = true
+            binding.downloadProgressLabel.isVisible = true
+            binding.downloadProgressLabel.text = getString(R.string.download_progress_placeholder)
 
             try {
-                val modelFile = controller.downloadModel(url, fileName)
+                val modelFile = controller.downloadModel(url, fileName) { downloaded, total ->
+                    withContext(Dispatchers.Main) {
+                        updateDownloadProgress(downloaded, total)
+                    }
+                }
                 saveModelReference(modelFile)
                 binding.modelStatus.text = getString(R.string.model_status_download_success, modelFile.name)
                 prepareModel(modelFile)
@@ -102,9 +116,42 @@ class MainActivity : AppCompatActivity() {
                 clearModelReference()
             } finally {
                 binding.modelDownloadButton.isEnabled = true
+                binding.downloadProgressIndicator.isVisible = false
+                binding.downloadProgressLabel.isVisible = false
             }
         }
     }
+
+    private fun updateDownloadProgress(downloaded: Long, total: Long?) {
+        if (!binding.downloadProgressIndicator.isVisible) {
+            binding.downloadProgressIndicator.isVisible = true
+        }
+        binding.downloadProgressIndicator.isIndeterminate = total == null
+        if (total != null && total > 0L) {
+            val progress = ((downloaded.toDouble() / total) * 100).coerceIn(0.0, 100.0)
+            val progressInt = progress.roundToInt()
+            binding.downloadProgressIndicator.progress = progressInt
+            val downloadedLabel = formatFileSize(downloaded)
+            val totalLabel = formatFileSize(total)
+            binding.downloadProgressLabel.text = getString(
+                R.string.download_progress_with_total,
+                progressInt,
+                downloadedLabel,
+                totalLabel
+            )
+        } else {
+            binding.downloadProgressIndicator.progress = 0
+            binding.downloadProgressLabel.text = getString(
+                R.string.download_progress_without_total,
+                formatFileSize(downloaded)
+            )
+        }
+        if (!binding.downloadProgressLabel.isVisible) {
+            binding.downloadProgressLabel.isVisible = true
+        }
+    }
+
+    private fun formatFileSize(bytes: Long): String = Formatter.formatShortFileSize(this, bytes)
 
     private fun prepareModel(file: File) {
         if (!file.exists()) {
