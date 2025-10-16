@@ -59,5 +59,12 @@ class MainActivity : AppCompatActivity() {
 
         binding.promptInputLayout.error = state.promptError
         binding.outputView.text = state.outputText
+
+        val logText = if (state.logMessages.isEmpty()) {
+            getString(R.string.log_placeholder)
+        } else {
+            state.logMessages.joinToString(separator = "\n") { message -> "• $message" }
+        }
+        binding.logView.text = logText
     }
 }

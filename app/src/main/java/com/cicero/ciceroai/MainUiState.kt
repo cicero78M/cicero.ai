@@ -9,5 +9,6 @@ data class MainUiState(
     val isDownloadButtonEnabled: Boolean,
     val isRunButtonEnabled: Boolean,
     val promptError: String?,
-    val outputText: String
+    val outputText: String,
+    val logMessages: List<String>
 )

@@ -16,4 +16,12 @@
     <string name="download_progress_content_description">Kemajuan unduhan model</string>
     <string name="download_progress_with_total">Mengunduh %1$d%% (%2$s dari %3$s)</string>
     <string name="download_progress_without_total">Mengunduh %1$s</string>
+    <string name="log_section_title">Log Proses</string>
+    <string name="log_placeholder">Ketuk tombol Jalankan untuk melihat proses inferensi.</string>
+    <string name="log_inference_prompt_empty">Prompt kosong. Isi prompt terlebih dahulu sebelum menjalankan inferensi.</string>
+    <string name="log_inference_started">Memulai proses inferensi.</string>
+    <string name="log_inference_preparing_prompt">Membersihkan dan menyiapkan prompt.</string>
+    <string name="log_inference_requesting_completion">Mengirim permintaan ke model (maksimum %1$d token).</string>
+    <string name="log_inference_success">Model selesai menghasilkan respons.</string>
+    <string name="log_inference_error">Inferensi gagal: %1$s</string>
 </resources>

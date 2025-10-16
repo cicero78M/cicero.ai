@@ -34,7 +34,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isDownloadButtonEnabled = true,
             isRunButtonEnabled = false,
             promptError = null,
-            outputText = context.getString(R.string.inference_placeholder)
+            outputText = context.getString(R.string.inference_placeholder),
+            logMessages = emptyList()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -62,7 +63,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val sanitizedPrompt = prompt.trim()
         if (sanitizedPrompt.isEmpty()) {
             _uiState.update { state ->
-                state.copy(promptError = context.getString(R.string.prompt_hint))
+                state.copy(
+                    promptError = context.getString(R.string.prompt_hint),
+                    logMessages = state.logMessages + context.getString(R.string.log_inference_prompt_empty)
+                )
             }
             return
         }
@@ -72,17 +76,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 state.copy(
                     promptError = null,
                     isRunButtonEnabled = false,
-                    outputText = context.getString(R.string.inference_placeholder)
+                    outputText = context.getString(R.string.inference_placeholder),
+                    logMessages = listOf(
+                        context.getString(R.string.log_inference_started),
+                        context.getString(R.string.log_inference_preparing_prompt)
+                    )
                 )
             }
 
             try {
+                appendLog(context.getString(R.string.log_inference_requesting_completion, 256))
                 val result = controller.runInference(sanitizedPrompt, maxTokens = 256)
+                appendLog(context.getString(R.string.log_inference_success))
                 _uiState.update { state ->
                     state.copy(outputText = result)
                 }
             } catch (error: Exception) {
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
+                appendLog(context.getString(R.string.log_inference_error, message))
                 _uiState.update { state ->
                     state.copy(outputText = message)
                 }
@@ -91,6 +102,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     state.copy(isRunButtonEnabled = true)
                 }
             }
+        }
+    }
+
+    private fun appendLog(message: String) {
+        _uiState.update { state ->
+            state.copy(logMessages = state.logMessages + message)
         }
     }
 
