@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -164,7 +165,7 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
     }
 
     llama_set_n_threads(session->context, session->thread_count, session->thread_count);
-    llama_kv_cache_clear(session->context);
+    // llama_kv_cache_clear(session->context) is not available in the pinned llama.cpp revision.
 
     auto evaluate_tokens = [&](const llama_token* data, int32_t count) {
         if (count <= 0) {
@@ -197,10 +198,14 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
 
     std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> sampler_guard(sampler, &llama_sampler_free);
     if (auto* greedy = llama_sampler_init_greedy()) {
-        const bool added = llama_sampler_chain_add(sampler, greedy);
-        if (!added) {
-            llama_sampler_free(greedy);
-            throw std::runtime_error("Tidak dapat menambahkan sampler greedy.");
+        using ChainAddReturn = decltype(llama_sampler_chain_add(sampler, greedy));
+        if constexpr (std::is_same_v<ChainAddReturn, bool>) {
+            if (!llama_sampler_chain_add(sampler, greedy)) {
+                llama_sampler_free(greedy);
+                throw std::runtime_error("Tidak dapat menambahkan sampler greedy.");
+            }
+        } else {
+            llama_sampler_chain_add(sampler, greedy);
         }
     } else {
         throw std::runtime_error("Tidak dapat membuat sampler greedy.");
