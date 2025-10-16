@@ -3,6 +3,8 @@ package com.cicero.ciceroai
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
@@ -27,6 +29,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.runButton.setOnClickListener {
+            hideKeyboard()
             val prompt = binding.promptInput.text?.toString().orEmpty()
             viewModel.runInference(prompt)
         }
@@ -66,5 +69,11 @@ class MainActivity : AppCompatActivity() {
             state.logMessages.joinToString(separator = "\n") { message -> "• $message" }
         }
         binding.logView.text = logText
+    }
+
+    private fun hideKeyboard() {
+        binding.promptInput.clearFocus()
+        val view = binding.promptInput
+        ViewCompat.getWindowInsetsController(view)?.hide(WindowInsetsCompat.Type.ime())
     }
 }
