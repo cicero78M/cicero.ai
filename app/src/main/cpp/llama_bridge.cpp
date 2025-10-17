@@ -159,7 +159,7 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
 
     auto tokens = tokenizePrompt(session->model, prompt);
     if (tokens.empty()) {
-        const llama_token bos = llama_vocab_get_bos(vocab);
+        const llama_token bos = llama_vocab_bos(vocab);
         if (bos == LLAMA_TOKEN_NULL) {
             throw std::runtime_error("Model tidak memiliki token BOS.");
         }
