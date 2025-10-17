@@ -155,7 +155,16 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         return std::string();
     }
 
+    const llama_vocab* vocab = llama_model_get_vocab(session->model);
+
     auto tokens = tokenizePrompt(session->model, prompt);
+    if (tokens.empty()) {
+        const llama_token bos = llama_vocab_get_bos(vocab);
+        if (bos == LLAMA_TOKEN_NULL) {
+            throw std::runtime_error("Model tidak memiliki token BOS.");
+        }
+        tokens.push_back(bos);
+    }
     const int total_needed = static_cast<int>(tokens.size()) + max_tokens;
     if (total_needed > session->context_size) {
         std::ostringstream msg;
@@ -221,7 +230,6 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         throw std::runtime_error("Tidak dapat membuat sampler greedy.");
     }
 
-    const llama_vocab* vocab = llama_model_get_vocab(session->model);
     std::string completion;
     completion.reserve(static_cast<size_t>(max_tokens) * 4);
 
