@@ -19,6 +19,7 @@ data class MainUiState(
     val outputText: String,
     val logMessages: List<String>,
     val downloadedModels: List<String>,
+    val selectedModelName: String?,
     val engineSetting: String,
     val promptTemplateSetting: String
 )

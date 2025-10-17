@@ -3,6 +3,8 @@ package com.cicero.ciceroai
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
@@ -20,6 +22,8 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
+    private lateinit var modelSpinnerAdapter: ArrayAdapter<String>
+    private var suppressModelSelection = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +31,34 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.topAppBar)
+
+        modelSpinnerAdapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            mutableListOf()
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            binding.modelSpinner.adapter = adapter
+        }
+
+        binding.modelSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                if (suppressModelSelection) {
+                    return
+                }
+                val modelName = modelSpinnerAdapter.getItem(position) ?: return
+                viewModel.onModelSelected(modelName)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // No-op
+            }
+        }
 
         binding.topAppBar.setNavigationOnClickListener { showNavigationMenu() }
 
@@ -87,6 +119,7 @@ class MainActivity : AppCompatActivity() {
         binding.promptInputLayout.error = state.promptError
         binding.outputView.text = state.outputText
 
+        updateModelSpinner(state.downloadedModels, state.selectedModelName)
         updateDownloadedModels(state.downloadedModels)
 
         if (!binding.engineInput.isFocused) {
@@ -125,6 +158,25 @@ class MainActivity : AppCompatActivity() {
             }
             binding.downloadedModelsGroup.addView(chip)
         }
+    }
+
+    private fun updateModelSpinner(models: List<String>, selectedModel: String?) {
+        suppressModelSelection = true
+        modelSpinnerAdapter.clear()
+        modelSpinnerAdapter.addAll(models)
+        modelSpinnerAdapter.notifyDataSetChanged()
+
+        val hasModels = models.isNotEmpty()
+        binding.modelSpinner.isEnabled = hasModels
+        binding.modelSpinner.isVisible = hasModels
+        binding.modelSelectorLabel.isVisible = hasModels
+
+        if (hasModels) {
+            val selectedIndex = selectedModel?.let { models.indexOf(it) }?.takeIf { it >= 0 } ?: 0
+            binding.modelSpinner.setSelection(selectedIndex, false)
+        }
+
+        suppressModelSelection = false
     }
 
     private fun showNavigationMenu() {
