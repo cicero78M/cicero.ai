@@ -41,6 +41,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             outputText = context.getString(R.string.inference_placeholder),
             logMessages = emptyList(),
             downloadedModels = emptyList(),
+            selectedModelName = loadSavedModelName(),
             engineSetting = loadEngineSetting(),
             promptTemplateSetting = loadPromptTemplate()
         )
@@ -123,6 +124,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_uiState.value.promptError != null) {
             _uiState.update { state -> state.copy(promptError = null) }
         }
+    }
+
+    fun onModelSelected(modelName: String) {
+        val currentSelection = _uiState.value.selectedModelName
+        if (currentSelection == modelName) {
+            val savedName = loadSavedModelName()
+            if (savedName == modelName) {
+                return
+            }
+        }
+
+        val modelFile = File(File(context.filesDir, "models"), modelName)
+        if (!modelFile.exists()) {
+            _uiState.update { state ->
+                state.copy(
+                    modelStatus = context.getString(R.string.model_status_no_file),
+                    selectedModelName = null,
+                    isRunButtonEnabled = false
+                )
+            }
+            clearModelReference()
+            return
+        }
+
+        saveModelReference(modelFile)
+        prepareModel(modelFile)
     }
 
     fun showHomePage() {
@@ -289,13 +316,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun loadSavedModelName(): String? {
+        val path = preferences.getString(KEY_MODEL_PATH, null) ?: return null
+        val file = File(path)
+        return if (file.exists()) {
+            file.name
+        } else {
+            removeModelPreference()
+            null
+        }
+    }
+
     private fun loadSavedModelFile(): File? {
         val path = preferences.getString(KEY_MODEL_PATH, null) ?: return null
         val file = File(path)
         return if (file.exists()) {
             file
         } else {
-            clearModelReference()
+            removeModelPreference()
             null
         }
     }
@@ -304,19 +342,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         preferences.edit()
             .putString(KEY_MODEL_PATH, file.absolutePath)
             .apply()
+        _uiState.update { state -> state.copy(selectedModelName = file.name) }
     }
 
     private fun clearModelReference() {
+        removeModelPreference()
+        _uiState.update { state -> state.copy(selectedModelName = null) }
+        refreshDownloadedModels()
+    }
+
+    private fun removeModelPreference() {
         preferences.edit()
             .remove(KEY_MODEL_PATH)
             .apply()
-        refreshDownloadedModels()
     }
 
     private fun refreshDownloadedModels() {
         val modelsDir = File(context.filesDir, "models")
         val names = modelsDir.listFiles()?.filter { it.isFile }?.map { it.name }?.sorted().orEmpty()
-        _uiState.update { state -> state.copy(downloadedModels = names) }
+        val savedName = loadSavedModelName()
+        val currentSelection = _uiState.value.selectedModelName
+        val selectedName = when {
+            savedName != null && names.contains(savedName) -> savedName
+            currentSelection != null && names.contains(currentSelection) -> currentSelection
+            else -> null
+        }
+        _uiState.update { state ->
+            state.copy(
+                downloadedModels = names,
+                selectedModelName = selectedName
+            )
+        }
     }
 
     private fun loadEngineSetting(): String =

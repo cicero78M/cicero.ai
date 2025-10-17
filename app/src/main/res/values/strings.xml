@@ -26,6 +26,8 @@
     <string name="log_inference_error">Inferensi gagal: %1$s</string>
     <string name="downloaded_models_title">Model Terunduh</string>
     <string name="downloaded_models_empty">Belum ada model yang diunduh.</string>
+    <string name="model_selector_label">Pilih model</string>
+    <string name="model_selector_prompt">Model yang tersedia</string>
     <string name="settings_engine_label">Engine</string>
     <string name="settings_engine_hint">Masukkan nama engine</string>
     <string name="settings_prompt_label">Prompting</string>
