@@ -257,10 +257,8 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
     std::string completion;
     completion.reserve(static_cast<size_t>(max_tokens) * 4);
 
-    llama_token previous_token = tokens.empty() ? LLAMA_TOKEN_NULL : tokens.back();
-
     for (int generated = 0; generated < max_tokens; ++generated) {
-        const llama_token next = llama_sampler_sample(sampler, session->context, previous_token);
+        const llama_token next = llama_sampler_sample(sampler, session->context, -1);
 
         if (llama_vocab_is_eog(vocab, next)) {
             break;
@@ -270,7 +268,6 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         completion += tokenToString(vocab, next);
 
         evaluate_tokens(&next, 1);
-        previous_token = next;
     }
 
     return completion;
