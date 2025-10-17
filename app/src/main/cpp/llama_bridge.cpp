@@ -4,6 +4,7 @@
 #include "llama.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -42,6 +43,7 @@ struct LlamaSession {
     int context_size = 0;
     llama_model* model = nullptr;
     llama_context* context = nullptr;
+    int32_t tokens_processed = 0;
 };
 
 std::once_flag g_backend_once;
@@ -151,6 +153,8 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         throw std::runtime_error("Session belum siap digunakan.");
     }
 
+    session->tokens_processed = 0;
+
     if (max_tokens <= 0) {
         return std::string();
     }
@@ -189,7 +193,13 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
 
             if (batch.pos) {
                 for (int32_t i = 0; i < batch.n_tokens; ++i) {
-                    batch.pos[i] = processed + i;
+                    batch.pos[i] = session->tokens_processed + processed + i;
+                }
+            }
+            if (batch.seq_id && batch.n_tokens > 0) {
+                for (int32_t i = 0; i < batch.n_tokens; ++i) {
+                    batch.n_seq_id[i] = 1;
+                    batch.seq_id[i][0] = 0;
                 }
             }
             if (batch.logits && batch.n_tokens > 0) {
@@ -206,6 +216,7 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
                 throw std::runtime_error(msg.str());
             }
             processed += chunk;
+            session->tokens_processed += chunk;
         }
     };
 
