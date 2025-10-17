@@ -44,6 +44,32 @@ struct LlamaSession {
     llama_context* context = nullptr;
 };
 
+llama_context_params makeContextParams(const LlamaSession& session) {
+    llama_context_params params = llama_context_default_params();
+    params.n_ctx = session.context_size;
+    params.n_batch = std::min(session.context_size, 512);
+    params.n_threads = session.thread_count;
+    params.n_threads_batch = session.thread_count;
+    params.no_perf = true;
+    return params;
+}
+
+void ensureFreshContext(LlamaSession& session) {
+    if (!session.model) {
+        throw std::runtime_error("Model belum dimuat.");
+    }
+
+    llama_context* fresh = llama_init_from_model(session.model, makeContextParams(session));
+    if (!fresh) {
+        throw std::runtime_error("Gagal membuat ulang konteks llama.");
+    }
+
+    if (session.context) {
+        llama_free(session.context);
+    }
+    session.context = fresh;
+}
+
 std::once_flag g_backend_once;
 std::mutex g_backend_mutex;
 int g_backend_users = 0;
@@ -154,6 +180,8 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
     if (max_tokens <= 0) {
         return std::string();
     }
+
+    ensureFreshContext(*session);
 
     auto tokens = tokenizePrompt(session->model, prompt);
     const int total_needed = static_cast<int>(tokens.size()) + max_tokens;
@@ -266,14 +294,7 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeInit(
             throw std::runtime_error(msg.str());
         }
 
-        llama_context_params ctx_params = llama_context_default_params();
-        ctx_params.n_ctx = session->context_size;
-        ctx_params.n_batch = std::min(session->context_size, 512);
-        ctx_params.n_threads = session->thread_count;
-        ctx_params.n_threads_batch = session->thread_count;
-        ctx_params.no_perf = true;
-
-        session->context = llama_init_from_model(session->model, ctx_params);
+        session->context = llama_init_from_model(session->model, makeContextParams(*session));
         if (!session->context) {
             llama_model_free(session->model);
             session->model = nullptr;
