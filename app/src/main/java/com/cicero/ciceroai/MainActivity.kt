@@ -118,6 +118,11 @@ class MainActivity : AppCompatActivity() {
 
         binding.promptInputLayout.error = state.promptError
         binding.outputView.text = state.outputText
+        binding.logView.text = if (state.logMessages.isEmpty()) {
+            getString(R.string.log_placeholder)
+        } else {
+            state.logMessages.joinToString(separator = "\n")
+        }
 
         updateModelSpinner(state.downloadedModels, state.selectedModelName)
         updateDownloadedModels(state.downloadedModels)
