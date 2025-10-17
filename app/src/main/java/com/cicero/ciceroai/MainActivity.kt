@@ -32,10 +32,10 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.topAppBar)
 
-        modelSpinnerAdapter = ArrayAdapter(
+        modelSpinnerAdapter = ArrayAdapter<String>(
             this,
             android.R.layout.simple_spinner_item,
-            mutableListOf()
+            mutableListOf<String>()
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.modelSpinner.adapter = adapter
