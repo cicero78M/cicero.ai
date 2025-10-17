@@ -199,13 +199,23 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
     std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> sampler_guard(sampler, &llama_sampler_free);
     if (auto* greedy = llama_sampler_init_greedy()) {
         using ChainAddReturn = decltype(llama_sampler_chain_add(sampler, greedy));
-        if constexpr (std::is_same_v<ChainAddReturn, bool>) {
-            if (!llama_sampler_chain_add(sampler, greedy)) {
-                llama_sampler_free(greedy);
-                throw std::runtime_error("Tidak dapat menambahkan sampler greedy.");
+
+        const auto add_sampler = [](llama_sampler* chain,
+                                    llama_sampler* sampler_to_add,
+                                    auto tag) {
+            if constexpr (decltype(tag)::value) {
+                return llama_sampler_chain_add(chain, sampler_to_add);
+            } else {
+                llama_sampler_chain_add(chain, sampler_to_add);
+                return true;
             }
-        } else {
-            llama_sampler_chain_add(sampler, greedy);
+        };
+
+        const bool added = add_sampler(sampler, greedy, std::is_same<ChainAddReturn, bool>{});
+
+        if (!added) {
+            llama_sampler_free(greedy);
+            throw std::runtime_error("Tidak dapat menambahkan sampler greedy.");
         }
     } else {
         throw std::runtime_error("Tidak dapat membuat sampler greedy.");
