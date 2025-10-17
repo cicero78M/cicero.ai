@@ -24,8 +24,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context: Application
         get() = getApplication()
 
+    private val defaultEngineName = context.getString(R.string.settings_engine_default)
+    private val defaultPromptTemplate = context.getString(R.string.settings_prompt_default)
+
     private val _uiState = MutableStateFlow(
         MainUiState(
+            currentPage = MainPage.HOME,
             modelStatus = context.getString(R.string.model_status_download_prompt),
             downloadProgressVisible = false,
             downloadProgressIndeterminate = true,
@@ -35,7 +39,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isRunButtonEnabled = false,
             promptError = null,
             outputText = context.getString(R.string.inference_placeholder),
-            logMessages = emptyList()
+            logMessages = emptyList(),
+            downloadedModels = emptyList(),
+            engineSetting = loadEngineSetting(),
+            promptTemplateSetting = loadPromptTemplate()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -44,6 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var downloadJob: Job? = null
 
     init {
+        refreshDownloadedModels()
         val savedModel = loadSavedModelFile()
         if (savedModel != null) {
             prepareModel(savedModel)
@@ -117,6 +125,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun showHomePage() {
+        _uiState.update { state -> state.copy(currentPage = MainPage.HOME) }
+    }
+
+    fun showDownloadPage() {
+        refreshDownloadedModels()
+        _uiState.update { state -> state.copy(currentPage = MainPage.DOWNLOAD) }
+    }
+
+    fun showSettingsPage() {
+        _uiState.update { state -> state.copy(currentPage = MainPage.SETTINGS) }
+    }
+
+    fun onEngineSettingChanged(value: String) {
+        preferences.edit()
+            .putString(KEY_ENGINE_NAME, value)
+            .apply()
+        _uiState.update { state ->
+            if (state.engineSetting == value) state else state.copy(engineSetting = value)
+        }
+    }
+
+    fun onPromptTemplateChanged(value: String) {
+        preferences.edit()
+            .putString(KEY_PROMPT_TEMPLATE, value)
+            .apply()
+        _uiState.update { state ->
+            if (state.promptTemplateSetting == value) state else state.copy(promptTemplateSetting = value)
+        }
+    }
+
     private fun startDownload(url: String) {
         val fileName = resolveFileName(url)
         downloadJob?.cancel()
@@ -144,6 +183,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         modelStatus = context.getString(R.string.model_status_download_success, modelFile.name)
                     )
                 }
+                refreshDownloadedModels()
                 prepareModel(modelFile)
             } catch (error: Exception) {
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
@@ -270,7 +310,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         preferences.edit()
             .remove(KEY_MODEL_PATH)
             .apply()
+        refreshDownloadedModels()
     }
+
+    private fun refreshDownloadedModels() {
+        val modelsDir = File(context.filesDir, "models")
+        val names = modelsDir.listFiles()?.filter { it.isFile }?.map { it.name }?.sorted().orEmpty()
+        _uiState.update { state -> state.copy(downloadedModels = names) }
+    }
+
+    private fun loadEngineSetting(): String =
+        preferences.getString(KEY_ENGINE_NAME, defaultEngineName) ?: defaultEngineName
+
+    private fun loadPromptTemplate(): String =
+        preferences.getString(KEY_PROMPT_TEMPLATE, defaultPromptTemplate) ?: defaultPromptTemplate
 
     private fun resolveFileName(url: String): String {
         val lastSegment = Uri.parse(url).lastPathSegment?.takeIf { it.isNotBlank() }
@@ -289,6 +342,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val PREF_NAME = "cicero_model_storage"
         private const val KEY_MODEL_PATH = "model_path"
+        private const val KEY_ENGINE_NAME = "engine_name"
+        private const val KEY_PROMPT_TEMPLATE = "prompt_template"
         private const val MODEL_URL = "https://huggingface.co/TheBloke/deepseek-coder-1.3b-instruct-GGUF/resolve/main/deepseek-coder-1.3b-instruct.Q4_K_M.gguf"
     }
 }

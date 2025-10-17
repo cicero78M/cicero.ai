@@ -8,9 +8,9 @@
     <string name="model_status_download_failed">Gagal mengunduh model: %1$s</string>
     <string name="model_status_no_file">Model belum diunduh atau berkas hilang.</string>
     <string name="action_download_deepseek">deepseek-coder-1.3b-instruct.Q4_K_M.gguf</string>
-    <string name="prompt_hint">Masukkan perintah</string>
+    <string name="prompt_hint">Ketik pertanyaan Anda…</string>
     <string name="prompt_autofill_hint">prompt</string>
-    <string name="action_run_inference">Jalankan</string>
+    <string name="action_run_inference">Kirim</string>
     <string name="inference_placeholder">Hasil inferensi akan tampil di sini.</string>
     <string name="download_progress_placeholder">Menunggu informasi ukuran berkas…</string>
     <string name="download_progress_content_description">Kemajuan unduhan model</string>
@@ -24,4 +24,19 @@
     <string name="log_inference_requesting_completion">Mengirim permintaan ke model (maksimum %1$d token).</string>
     <string name="log_inference_success">Model selesai menghasilkan respons.</string>
     <string name="log_inference_error">Inferensi gagal: %1$s</string>
+    <string name="downloaded_models_title">Model Terunduh</string>
+    <string name="downloaded_models_empty">Belum ada model yang diunduh.</string>
+    <string name="settings_engine_label">Engine</string>
+    <string name="settings_engine_hint">Masukkan nama engine</string>
+    <string name="settings_prompt_label">Prompting</string>
+    <string name="settings_prompt_hint">Atur template prompt</string>
+    <string name="settings_engine_default">Default</string>
+    <string name="settings_prompt_default">Gunakan format standar.</string>
+    <string name="menu_home">Halaman Utama</string>
+    <string name="menu_download">Download Model</string>
+    <string name="menu_settings">Setting</string>
+    <string name="title_home">Percakapan</string>
+    <string name="title_download">Download Model</string>
+    <string name="title_settings">Setting</string>
+    <string name="menu_navigation_content_description">Buka menu navigasi</string>
 </resources>
