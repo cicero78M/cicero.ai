@@ -186,7 +186,20 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         while (processed < count) {
             const int32_t chunk = std::min<int32_t>(max_batch, count - processed);
             llama_batch batch = llama_batch_get_one(const_cast<llama_token*>(data + processed), chunk);
+
+            if (batch.pos) {
+                for (int32_t i = 0; i < batch.n_tokens; ++i) {
+                    batch.pos[i] = processed + i;
+                }
+            }
+            if (batch.logits && batch.n_tokens > 0) {
+                for (int32_t i = 0; i < batch.n_tokens; ++i) {
+                    batch.logits[i] = (i == batch.n_tokens - 1) ? 1 : 0;
+                }
+            }
+
             const int32_t status = llama_decode(session->context, batch);
+            llama_batch_free(batch);
             if (status != 0) {
                 std::ostringstream msg;
                 msg << "Gagal memproses token (status=" << status << ")";
