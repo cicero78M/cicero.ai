@@ -14,172 +14,287 @@
         android:elevation="4dp"
         android:paddingHorizontal="24dp"
         android:title="@string/app_name"
-        android:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-        app:titleCentered="true" />
+        android:navigationContentDescription="@string/menu_navigation_content_description"
+        app:navigationIcon="@drawable/ic_menu" />
 
-    <androidx.core.widget.NestedScrollView
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingHorizontal="24dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="24dp">
+        android:layout_weight="1">
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/homeContainer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:layout_height="match_parent">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:strokeColor="?android:attr/textColorSecondary"
-                app:strokeWidth="1dp">
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/outputScroll"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:clipToPadding="false"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                app:layout_constraintBottom_toTopOf="@id/promptContainer"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:gravity="bottom">
 
-                    <TextView
-                        android:id="@+id/modelStatus"
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/model_status_download_prompt"
+                        android:layout_marginBottom="12dp"
+                        app:cardBackgroundColor="?attr/colorSurface"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="1dp"
+                        app:strokeColor="?android:attr/textColorSecondary"
+                        app:strokeWidth="1dp">
+
+                        <TextView
+                            android:id="@+id/outputView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minHeight="160dp"
+                            android:padding="20dp"
+                            android:text="@string/inference_placeholder"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                            android:textColor="?android:attr/textColorPrimary" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
+            <LinearLayout
+                android:id="@+id/promptContainer"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginBottom="24dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/promptInputLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/prompt_hint"
+                    app:boxCornerRadiusBottomEnd="24dp"
+                    app:boxCornerRadiusBottomStart="24dp"
+                    app:boxCornerRadiusTopEnd="24dp"
+                    app:boxCornerRadiusTopStart="24dp"
+                    app:endIconMode="clear_text">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/promptInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:gravity="top|start"
+                        android:importantForAutofill="yes"
+                        android:inputType="textMultiLine"
+                        android:maxLines="6"
+                        android:minLines="1"
+                        android:overScrollMode="ifContentScrolls"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:imeOptions="actionSend"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:autofillHints="@string/prompt_autofill_hint" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.progressindicator.LinearProgressIndicator
-                        android:id="@+id/downloadProgressIndicator"
-                        style="@style/Widget.MaterialComponents.LinearProgressIndicator"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:visibility="gone"
-                        android:contentDescription="@string/download_progress_content_description"
-                        app:trackCornerRadius="8dp"
-                        app:trackThickness="8dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/runButton"
+                    style="@style/Widget.MaterialComponents.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="12dp"
+                    android:contentDescription="@string/action_run_inference"
+                    android:insetLeft="0dp"
+                    android:insetRight="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    app:backgroundTint="?attr/colorPrimary"
+                    app:cornerRadius="20dp"
+                    app:icon="@drawable/ic_send"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconTint="?attr/colorOnPrimary" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
-                    <TextView
-                        android:id="@+id/downloadProgressLabel"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/download_progress_placeholder"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:visibility="gone" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/downloadContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="24dp"
+            android:visibility="gone">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/modelDownloadButton"
-                style="@style/Widget.MaterialComponents.Button"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/action_download_deepseek" />
+                android:orientation="vertical">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/promptInputLayout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:hint="@string/prompt_hint"
-                app:boxBackgroundMode="outline"
-                app:endIconMode="clear_text">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/promptInput"
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:importantForAutofill="yes"
-                    android:inputType="textMultiLine"
-                    android:maxLines="6"
-                    android:minLines="3"
-                    android:overScrollMode="ifContentScrolls"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                    android:autofillHints="@string/prompt_autofill_hint" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="?android:attr/textColorSecondary"
+                    app:strokeWidth="1dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/runButton"
-                style="@style/Widget.MaterialComponents.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/action_run_inference"
-                app:iconGravity="textStart"
-                app:iconPadding="12dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:strokeColor="?android:attr/textColorSecondary"
-                app:strokeWidth="1dp">
+                        <TextView
+                            android:id="@+id/modelStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/model_status_download_prompt"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                            android:textColor="?android:attr/textColorPrimary" />
 
-                <LinearLayout
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/downloadProgressIndicator"
+                            style="@style/Widget.MaterialComponents.LinearProgressIndicator"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:contentDescription="@string/download_progress_content_description"
+                            android:visibility="gone"
+                            app:trackCornerRadius="8dp"
+                            app:trackThickness="8dp" />
+
+                        <TextView
+                            android:id="@+id/downloadProgressLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/download_progress_placeholder"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/modelDownloadButton"
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/log_section_title"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:id="@+id/logView"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:minHeight="120dp"
-                        android:scrollbars="vertical"
-                        android:text="@string/log_placeholder"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:strokeColor="?android:attr/textColorSecondary"
-                app:strokeWidth="1dp">
+                    android:text="@string/action_download_deepseek" />
 
                 <TextView
-                    android:id="@+id/outputView"
+                    android:id="@+id/downloadedModelsTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="160dp"
-                    android:padding="20dp"
-                    android:scrollbars="vertical"
-                    android:text="@string/inference_placeholder"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/downloaded_models_title"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                     android:textColor="?android:attr/textColorPrimary" />
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/downloadedModelsGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:chipSpacingHorizontal="8dp"
+                    app:chipSpacingVertical="8dp"
+                    app:singleLine="false"
+                    app:singleSelection="false" />
+
+                <TextView
+                    android:id="@+id/downloadedModelsEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/downloaded_models_empty"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/settingsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_engine_label"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/engineInputLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/settings_engine_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/engineInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_prompt_label"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/promptTemplateInputLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/settings_prompt_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/promptTemplateInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine"
+                        android:minLines="3"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 </LinearLayout>
