@@ -97,27 +97,17 @@ class ModelAssetManager(
                     .header("Accept", ACCEPT_HEADER)
                     .build()
 
+                var shouldRetry = false
+                var retryDelayMillis: Long? = null
+
                 httpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
                         if (response.code in RETRYABLE_STATUS_CODES) {
                             val retryAfterSeconds = parseRetryAfterSeconds(response.header("Retry-After"))
-                            val delayMillis = computeRetryDelayMillis(retryAfterSeconds, waitCount)
+                            retryDelayMillis = computeRetryDelayMillis(retryAfterSeconds, waitCount)
                             waitCount++
-                            tempFile.delete()
-
-                            if (delayMillis > 0L) {
-                                val formattedDuration = formatDelayMessage(delayMillis)
-                                onStatus(
-                                    context.getString(
-                                        R.string.model_status_download_waiting_retry,
-                                        formattedDuration
-                                    )
-                                )
-                                delay(delayMillis)
-                                onStatus(context.getString(R.string.model_status_downloading))
-                            }
-
-                            continue@attemptLoop
+                            shouldRetry = true
+                            return@use
                         }
 
                         throw IOException(
@@ -148,6 +138,23 @@ class ModelAssetManager(
                         }
                     }
                     waitCount = 0
+                }
+
+                if (shouldRetry) {
+                    tempFile.delete()
+                    val delayMillis = retryDelayMillis ?: 0L
+                    if (delayMillis > 0L) {
+                        val formattedDuration = formatDelayMessage(delayMillis)
+                        onStatus(
+                            context.getString(
+                                R.string.model_status_download_waiting_retry,
+                                formattedDuration
+                            )
+                        )
+                        delay(delayMillis)
+                        onStatus(context.getString(R.string.model_status_downloading))
+                    }
+                    continue@attemptLoop
                 }
 
                 if (targetFile.exists()) {
