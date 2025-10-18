@@ -209,7 +209,8 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
             }
 
             const int32_t status = llama_decode(session->context, batch);
-            llama_batch_free(batch);
+            // Batches created via llama_batch_get_one do not own their buffers,
+            // so they must not be released with llama_batch_free.
             if (status != 0) {
                 std::ostringstream msg;
                 msg << "Gagal memproses token (status=" << status << ")";
