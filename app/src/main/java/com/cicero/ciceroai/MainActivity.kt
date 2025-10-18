@@ -17,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.core.widget.TextViewCompat
+import com.cicero.ciceroai.R
 import com.google.android.material.color.MaterialColors
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -300,7 +301,7 @@ class MainActivity : AppCompatActivity() {
             this.layoutParams = layoutParams
             radius = resources.getDimension(R.dimen.downloaded_model_card_radius)
             strokeWidth = if (isSelected) resources.getDimensionPixelSize(R.dimen.downloaded_model_card_stroke) else 0
-            strokeColor = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimary)
+            strokeColor = MaterialColors.getColor(binding.root, R.attr.colorPrimary)
             setContentPadding(padding, padding, padding, padding)
             isClickable = true
             isFocusable = true
