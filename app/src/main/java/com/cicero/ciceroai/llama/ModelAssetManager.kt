@@ -3,14 +3,27 @@ package com.cicero.ciceroai.llama
 import android.content.Context
 import java.io.File
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
-import kotlin.io.DEFAULT_BUFFER_SIZE
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import kotlin.io.DEFAULT_BUFFER_SIZE
 
 class ModelAssetManager(private val context: Context) {
     private val dispatcher = Dispatchers.IO
+    private val httpClient = OkHttpClient.Builder()
+        .retryOnConnectionFailure(true)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(2, TimeUnit.MINUTES)
+        .writeTimeout(2, TimeUnit.MINUTES)
+        .build()
+
+    companion object {
+        private const val MAX_DOWNLOAD_ATTEMPTS = 3
+        private const val USER_AGENT = "CiceroAI-ModelDownloader/1.0"
+        private const val ACCEPT_HEADER = "application/octet-stream, */*"
+    }
 
     suspend fun copyModelIfNeeded(assetName: String): File = withContext(dispatcher) {
         val targetDir = File(context.filesDir, "models").apply { mkdirs() }
@@ -47,54 +60,69 @@ class ModelAssetManager(private val context: Context) {
         val safeName = File(fileName).name.ifBlank { throw IOException("Nama berkas tidak valid") }
         val targetFile = File(modelsDir, safeName)
         val tempPrefix = safeName.substringBefore('.').takeIf { it.length >= 3 } ?: "model"
-        val tempFile = File.createTempFile(tempPrefix, ".download", modelsDir)
+        var attempt = 0
+        var lastError: IOException? = null
 
-        var connection: HttpURLConnection? = null
-        try {
-            connection = URL(url).openConnection() as? HttpURLConnection
-                ?: throw IOException("Tidak dapat membuka koneksi HTTP/HTTPS")
+        while (attempt < MAX_DOWNLOAD_ATTEMPTS) {
+            val tempFile = File.createTempFile(tempPrefix, ".download", modelsDir)
+            try {
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept", ACCEPT_HEADER)
+                    .build()
 
-            connection.connectTimeout = 15_000
-            connection.readTimeout = 60_000
-            connection.instanceFollowRedirects = true
-            connection.connect()
-
-            val code = connection.responseCode
-            if (code !in 200..299) {
-                throw IOException("Gagal mengunduh model. Kode respons: $code")
-            }
-
-            val totalBytes = connection.contentLengthLong.takeIf { it > 0L }
-            connection.inputStream.use { input ->
-                tempFile.outputStream().use { output ->
-                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                    var downloaded = 0L
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        output.write(buffer, 0, read)
-                        downloaded += read
-                        onProgress(downloaded, totalBytes)
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw IOException(
+                            "Gagal mengunduh model. Kode respons: ${response.code}"
+                        )
                     }
-                    output.flush()
+
+                    val body = response.body ?: throw IOException("Respons tidak memiliki konten")
+                    val totalBytes = body.contentLength().takeIf { it > 0L }
+                    body.byteStream().use { input ->
+                        tempFile.outputStream().use { output ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            var downloaded = 0L
+                            while (true) {
+                                val read = input.read(buffer)
+                                if (read == -1) break
+                                output.write(buffer, 0, read)
+                                downloaded += read
+                                onProgress(downloaded, totalBytes)
+                            }
+                            output.flush()
+
+                            if (totalBytes != null && downloaded != totalBytes) {
+                                throw IOException(
+                                    "Unduhan terputus. Hanya menerima $downloaded dari $totalBytes byte"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+
+                if (!tempFile.renameTo(targetFile)) {
+                    tempFile.copyTo(targetFile, overwrite = true)
+                    tempFile.delete()
+                }
+
+                return@withContext targetFile
+            } catch (error: IOException) {
+                tempFile.delete()
+                lastError = error
+                attempt++
+                if (attempt >= MAX_DOWNLOAD_ATTEMPTS) {
+                    throw error
                 }
             }
-
-            if (targetFile.exists()) {
-                targetFile.delete()
-            }
-
-            if (!tempFile.renameTo(targetFile)) {
-                tempFile.copyTo(targetFile, overwrite = true)
-                tempFile.delete()
-            }
-
-            targetFile
-        } catch (error: Exception) {
-            tempFile.delete()
-            throw error
-        } finally {
-            connection?.disconnect()
         }
+
+        throw lastError ?: IOException("Unduhan gagal tanpa pengecualian yang diketahui")
     }
 }
