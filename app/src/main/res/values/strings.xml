@@ -42,4 +42,7 @@
     <string name="title_download">Download Model</string>
     <string name="title_settings">Setting</string>
     <string name="menu_navigation_content_description">Buka menu navigasi</string>
+    <string name="log_copy_content_description">Salin log</string>
+    <string name="log_clipboard_label">Log Cicero.AI</string>
+    <string name="log_copied_confirmation">Log berhasil disalin ke clipboard.</string>
 </resources>
