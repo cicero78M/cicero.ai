@@ -12,7 +12,8 @@ data class MainUiState(
     val downloadProgressVisible: Boolean,
     val downloadProgressIndeterminate: Boolean,
     val downloadProgressValue: Int,
-    val downloadProgressLabel: String,
+    val downloadProgressPercentText: String,
+    val downloadProgressDataText: String,
     val isDownloadButtonEnabled: Boolean,
     val isRunButtonEnabled: Boolean,
     val promptError: String?,
@@ -20,6 +21,21 @@ data class MainUiState(
     val logMessages: List<String>,
     val downloadedModels: List<String>,
     val selectedModelName: String?,
+    val standardModels: List<StandardModelInfo>,
+    val selectedStandardModelIndex: Int,
     val engineSetting: String,
     val promptTemplateSetting: String
+)
+
+data class StandardModelInfo(
+    val name: String,
+    val sizeLabel: String,
+    val description: String,
+    val downloadUrl: String,
+    val repositoryLinks: List<RepositoryLink>
+)
+
+data class RepositoryLink(
+    val label: String,
+    val url: String
 )
