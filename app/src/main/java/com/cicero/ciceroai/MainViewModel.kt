@@ -353,18 +353,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
+                val contextSize = latestSettingsConfig.contextSize.coerceAtLeast(0)
                 val baseSamplingConfig = LlamaSettingsParser.parseSamplingConfig(
                     latestSettingsConfig.sampling,
-                    defaultMaxTokens = 256
+                    defaultMaxTokens = deriveDefaultMaxTokens(contextSize)
                 )
-                val samplingConfig = baseSamplingConfig.copy(
+                val sanitizedSamplingConfig = baseSamplingConfig.copy(
                     temperature = latestSettingsConfig.temperature,
                     topP = latestSettingsConfig.topP
                 ).sanitized()
+                val tokenBudget = computeTokenBudget(
+                    prompt = sanitizedPrompt,
+                    contextSize = contextSize,
+                    configuredMaxTokens = sanitizedSamplingConfig.maxTokens
+                )
+                val samplingConfig = sanitizedSamplingConfig.copy(maxTokens = tokenBudget.maxTokens)
                 appendLog(
                     context.getString(
                         R.string.log_inference_requesting_completion,
-                        samplingConfig.maxTokens
+                        tokenBudget.maxTokens,
+                        tokenBudget.remainingTokens,
+                        contextSize
                     )
                 )
                 val result = controller.runInference(sanitizedPrompt, samplingConfig)
