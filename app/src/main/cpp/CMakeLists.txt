@@ -28,6 +28,15 @@ find_program(CICERO_NINJA_EXECUTABLE
 if (NOT CICERO_NINJA_EXECUTABLE)
     message(WARNING "Ninja build tool not found; disabling GGML Vulkan backend")
     set(CICERO_ENABLE_VULKAN OFF)
+else()
+    # Propagate the Ninja path so nested CMake invocations (such as the
+    # ggml/vulkan shader generator) can locate the executable even when it is
+    # not present on the user's PATH – a common scenario on Windows Android
+    # Studio installations.
+    set(CMAKE_MAKE_PROGRAM "${CICERO_NINJA_EXECUTABLE}" CACHE FILEPATH
+        "Ninja executable used for Vulkan shader generation" FORCE)
+    set(Ninja_EXECUTABLE "${CICERO_NINJA_EXECUTABLE}" CACHE FILEPATH
+        "Ninja executable used for Vulkan shader generation" FORCE)
 endif()
 
 set(GGML_VULKAN ${CICERO_ENABLE_VULKAN} CACHE BOOL "" FORCE)
