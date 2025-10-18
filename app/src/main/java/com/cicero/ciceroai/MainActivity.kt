@@ -15,9 +15,10 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import androidx.core.widget.doAfterTextChanged
 import androidx.core.widget.TextViewCompat
+import androidx.core.widget.doAfterTextChanged
 import com.cicero.ciceroai.R
+import com.cicero.ciceroai.settings.PresetOption
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.R as MaterialR
 import androidx.appcompat.R as AppCompatR
@@ -37,6 +38,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var standardModelSpinnerAdapter: ArrayAdapter<String>
     private var suppressModelSelection = false
     private var suppressStandardModelSelection = false
+    private val presetButtonIdToOption = mapOf(
+        R.id.presetBatterySaverButton to PresetOption.BATTERY_SAVER,
+        R.id.presetBalancedButton to PresetOption.BALANCED,
+        R.id.presetTurboButton to PresetOption.TURBO
+    )
+    private val optionToPresetButtonId = presetButtonIdToOption.entries.associate { (id, preset) -> preset to id }
+    private var suppressPresetSelection = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +82,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.topAppBar.setNavigationOnClickListener { showNavigationMenu() }
+
+        binding.presetToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked || suppressPresetSelection) {
+                return@addOnButtonCheckedListener
+            }
+            val preset = presetButtonIdToOption[checkedId] ?: return@addOnButtonCheckedListener
+            viewModel.onPresetSelected(preset)
+        }
 
         standardModelSpinnerAdapter = ArrayAdapter<String>(
             this,
@@ -119,10 +135,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.promptInput.doAfterTextChanged {
             viewModel.onPromptTextChanged()
-        }
-
-        binding.presetInput.doAfterTextChanged { text ->
-            viewModel.onPresetSettingChanged(text?.toString().orEmpty())
         }
 
         binding.modelSettingInput.doAfterTextChanged { text ->
@@ -206,7 +218,13 @@ class MainActivity : AppCompatActivity() {
         updateModelSpinner(state.downloadedModels, state.selectedModelName)
         updateDownloadedModels(state.downloadedModels, state.selectedModelName)
 
-        updateSettingInput(binding.presetInput, state.presetSetting)
+        val expectedButtonId = optionToPresetButtonId[state.selectedPreset]
+        if (expectedButtonId != null && binding.presetToggleGroup.checkedButtonId != expectedButtonId) {
+            suppressPresetSelection = true
+            binding.presetToggleGroup.check(expectedButtonId)
+            suppressPresetSelection = false
+        }
+        binding.presetDescription.text = getString(state.selectedPreset.descriptionRes)
         updateSettingInput(binding.modelSettingInput, state.modelSetting)
         updateSettingInput(binding.runtimeInput, state.runtimeSetting)
         updateSettingInput(binding.samplingInput, state.samplingSetting)

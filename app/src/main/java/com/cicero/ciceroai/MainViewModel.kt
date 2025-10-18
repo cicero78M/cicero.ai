@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cicero.ciceroai.llama.LlamaController
 import com.cicero.ciceroai.llama.LlamaSettingsParser
+import com.cicero.ciceroai.settings.PresetOption
+import com.cicero.ciceroai.settings.PresetValues
 import com.cicero.ciceroai.settings.SettingsConfig
 import com.cicero.ciceroai.settings.SettingsRepository
 import com.cicero.ciceroai.settings.settingsDataStore
@@ -120,29 +122,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context: Application
         get() = getApplication()
 
-    private val defaultPresetSetting = context.getString(R.string.settings_preset_default)
-    private val defaultModelSetting = context.getString(R.string.settings_model_default)
-    private val defaultRuntimeSetting = context.getString(R.string.settings_runtime_default)
-    private val defaultSamplingSetting = context.getString(R.string.settings_sampling_default)
-    private val defaultPromptPersonaSetting = context.getString(R.string.settings_prompt_persona_default)
-    private val defaultMemorySetting = context.getString(R.string.settings_memory_default)
-    private val defaultCodingWorkspaceSetting = context.getString(R.string.settings_coding_workspace_default)
-    private val defaultPrivacySetting = context.getString(R.string.settings_privacy_default)
-    private val defaultStorageSetting = context.getString(R.string.settings_storage_default)
-    private val defaultDiagnosticsSetting = context.getString(R.string.settings_diagnostics_default)
+    private val presetValues: Map<PresetOption, PresetValues> = mapOf(
+        PresetOption.BATTERY_SAVER to PresetValues(
+            model = context.getString(R.string.settings_model_battery_saver),
+            runtime = context.getString(R.string.settings_runtime_battery_saver),
+            sampling = context.getString(R.string.settings_sampling_battery_saver),
+            promptPersona = context.getString(R.string.settings_prompt_persona_battery_saver),
+            memory = context.getString(R.string.settings_memory_battery_saver),
+            codingWorkspace = context.getString(R.string.settings_coding_workspace_battery_saver),
+            privacy = context.getString(R.string.settings_privacy_battery_saver),
+            storage = context.getString(R.string.settings_storage_battery_saver),
+            diagnostics = context.getString(R.string.settings_diagnostics_battery_saver)
+        ),
+        PresetOption.BALANCED to PresetValues(
+            model = context.getString(R.string.settings_model_default),
+            runtime = context.getString(R.string.settings_runtime_default),
+            sampling = context.getString(R.string.settings_sampling_default),
+            promptPersona = context.getString(R.string.settings_prompt_persona_default),
+            memory = context.getString(R.string.settings_memory_default),
+            codingWorkspace = context.getString(R.string.settings_coding_workspace_default),
+            privacy = context.getString(R.string.settings_privacy_default),
+            storage = context.getString(R.string.settings_storage_default),
+            diagnostics = context.getString(R.string.settings_diagnostics_default)
+        ),
+        PresetOption.TURBO to PresetValues(
+            model = context.getString(R.string.settings_model_turbo),
+            runtime = context.getString(R.string.settings_runtime_turbo),
+            sampling = context.getString(R.string.settings_sampling_turbo),
+            promptPersona = context.getString(R.string.settings_prompt_persona_turbo),
+            memory = context.getString(R.string.settings_memory_turbo),
+            codingWorkspace = context.getString(R.string.settings_coding_workspace_turbo),
+            privacy = context.getString(R.string.settings_privacy_turbo),
+            storage = context.getString(R.string.settings_storage_turbo),
+            diagnostics = context.getString(R.string.settings_diagnostics_turbo)
+        )
+    )
+
+    private val defaultPresetOption = PresetOption.BALANCED
+    private val defaultPresetValues = presetValues.getValue(defaultPresetOption)
 
     private val defaultSettingsConfig = SettingsConfig(
         modelPath = null,
-        preset = defaultPresetSetting,
-        model = defaultModelSetting,
-        runtime = defaultRuntimeSetting,
-        sampling = defaultSamplingSetting,
-        promptPersona = defaultPromptPersonaSetting,
-        memory = defaultMemorySetting,
-        codingWorkspace = defaultCodingWorkspaceSetting,
-        privacy = defaultPrivacySetting,
-        storage = defaultStorageSetting,
-        diagnostics = defaultDiagnosticsSetting
+        preset = defaultPresetOption,
+        model = defaultPresetValues.model,
+        runtime = defaultPresetValues.runtime,
+        sampling = defaultPresetValues.sampling,
+        promptPersona = defaultPresetValues.promptPersona,
+        memory = defaultPresetValues.memory,
+        codingWorkspace = defaultPresetValues.codingWorkspace,
+        privacy = defaultPresetValues.privacy,
+        storage = defaultPresetValues.storage,
+        diagnostics = defaultPresetValues.diagnostics
     )
 
     private val settingsRepository = SettingsRepository(context.settingsDataStore, defaultSettingsConfig)
@@ -169,7 +199,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedModelName = getSavedModelName(),
             standardModels = standardModelOptions,
             selectedStandardModelIndex = 0,
-            presetSetting = latestSettingsConfig.preset,
+            selectedPreset = latestSettingsConfig.preset,
             modelSetting = latestSettingsConfig.model,
             runtimeSetting = latestSettingsConfig.runtime,
             samplingSetting = latestSettingsConfig.sampling,
@@ -204,7 +234,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 latestSettingsConfig = sanitizedConfig
                 _uiState.update { state ->
                     state.copy(
-                        presetSetting = sanitizedConfig.preset,
+                        selectedPreset = sanitizedConfig.preset,
                         modelSetting = sanitizedConfig.model,
                         runtimeSetting = sanitizedConfig.runtime,
                         samplingSetting = sanitizedConfig.sampling,
@@ -375,14 +405,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { state -> state.copy(currentPage = MainPage.SETTINGS) }
     }
 
-    fun onPresetSettingChanged(value: String) {
-        if (latestSettingsConfig.preset == value) {
+    fun onPresetSelected(preset: PresetOption) {
+        if (latestSettingsConfig.preset == preset) {
             return
         }
-        latestSettingsConfig = latestSettingsConfig.copy(preset = value)
-        viewModelScope.launch { settingsRepository.updatePreset(value) }
+        val values = presetValues[preset] ?: return
+        latestSettingsConfig = latestSettingsConfig.copy(
+            preset = preset,
+            model = values.model,
+            runtime = values.runtime,
+            sampling = values.sampling,
+            promptPersona = values.promptPersona,
+            memory = values.memory,
+            codingWorkspace = values.codingWorkspace,
+            privacy = values.privacy,
+            storage = values.storage,
+            diagnostics = values.diagnostics
+        )
+        viewModelScope.launch { settingsRepository.applyPreset(preset, values) }
         _uiState.update { state ->
-            if (state.presetSetting == value) state else state.copy(presetSetting = value)
+            state.copy(
+                selectedPreset = preset,
+                modelSetting = values.model,
+                runtimeSetting = values.runtime,
+                samplingSetting = values.sampling,
+                promptPersonaSetting = values.promptPersona,
+                memorySetting = values.memory,
+                codingWorkspaceSetting = values.codingWorkspace,
+                privacySetting = values.privacy,
+                storageSetting = values.storage,
+                diagnosticsSetting = values.diagnostics
+            )
         }
     }
 
