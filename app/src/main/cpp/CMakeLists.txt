@@ -20,10 +20,28 @@ set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
 option(CICERO_ENABLE_VULKAN "Enable the GGML Vulkan backend" ON)
 
+set(_cicero_ninja_hints)
+get_filename_component(_cicero_cmake_dir "${CMAKE_COMMAND}" DIRECTORY)
+if (_cicero_cmake_dir)
+    list(APPEND _cicero_ninja_hints "${_cicero_cmake_dir}")
+    # Android Studio bundles ninja alongside CMake, so include the parent
+    # directory as a search hint as well.  This mirrors the layout of the
+    # official SDK manager installation on Windows where the binaries live at
+    # "sdk/cmake/<version>/bin".
+    get_filename_component(_cicero_cmake_parent "${_cicero_cmake_dir}" DIRECTORY)
+    if (_cicero_cmake_parent)
+        list(APPEND _cicero_ninja_hints "${_cicero_cmake_parent}")
+    endif()
+endif()
+
 find_program(CICERO_NINJA_EXECUTABLE
     NAMES ninja ninja.exe
+    HINTS ${_cicero_ninja_hints}
     DOC "Path to the Ninja build tool required for the Vulkan shader generator"
 )
+unset(_cicero_ninja_hints)
+unset(_cicero_cmake_dir)
+unset(_cicero_cmake_parent)
 
 if (NOT CICERO_NINJA_EXECUTABLE)
     message(WARNING "Ninja build tool not found; disabling GGML Vulkan backend")
