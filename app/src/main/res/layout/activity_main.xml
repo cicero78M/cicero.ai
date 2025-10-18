@@ -482,22 +482,51 @@
                             android:textColor="?android:attr/textColorPrimary"
                             android:textStyle="bold" />
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/presetInputLayout"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/presetToggleGroup"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_preset_hint">
+                            android:gravity="center"
+                            app:checkedButton="@id/presetBalancedButton"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/presetInput"
-                                android:layout_width="match_parent"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/presetBatterySaverButton"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:inputType="text"
-                                android:maxLines="1"
-                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/settings_preset_battery_saver" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/presetBalancedButton"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/settings_preset_balanced" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/presetTurboButton"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_preset_turbo" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                        <TextView
+                            android:id="@+id/presetDescription"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_small"
+                            android:text="@string/settings_preset_balanced_description"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                            android:textColor="?android:attr/textColorSecondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 

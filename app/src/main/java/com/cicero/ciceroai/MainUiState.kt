@@ -6,6 +6,8 @@ enum class MainPage {
     SETTINGS
 }
 
+import com.cicero.ciceroai.settings.PresetOption
+
 data class MainUiState(
     val currentPage: MainPage,
     val modelStatus: String,
@@ -23,7 +25,7 @@ data class MainUiState(
     val selectedModelName: String?,
     val standardModels: List<StandardModelInfo>,
     val selectedStandardModelIndex: Int,
-    val presetSetting: String,
+    val selectedPreset: PresetOption,
     val modelSetting: String,
     val runtimeSetting: String,
     val samplingSetting: String,

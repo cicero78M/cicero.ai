@@ -25,11 +25,11 @@ class SettingsRepository(
         .map { preferences -> mapPreferences(preferences) }
 
     private fun mapPreferences(preferences: Preferences): SettingsConfig {
+        val presetValue = PresetOption.fromId(preferences[SettingsPreferencesKeys.PRESET])
         return SettingsConfig(
             modelPath = preferences[SettingsPreferencesKeys.MODEL_PATH]
                 ?: defaultConfig.modelPath,
-            preset = preferences[SettingsPreferencesKeys.PRESET]
-                ?: defaultConfig.preset,
+            preset = presetValue,
             model = preferences[SettingsPreferencesKeys.MODEL]
                 ?: defaultConfig.model,
             runtime = preferences[SettingsPreferencesKeys.RUNTIME]
@@ -65,8 +65,23 @@ class SettingsRepository(
         updateModelPath(null)
     }
 
-    suspend fun updatePreset(value: String) {
-        updatePreference(SettingsPreferencesKeys.PRESET, value)
+    suspend fun updatePreset(preset: PresetOption) {
+        updatePreference(SettingsPreferencesKeys.PRESET, preset.id)
+    }
+
+    suspend fun applyPreset(preset: PresetOption, values: PresetValues) {
+        dataStore.edit { preferences ->
+            preferences[SettingsPreferencesKeys.PRESET] = preset.id
+            preferences[SettingsPreferencesKeys.MODEL] = values.model
+            preferences[SettingsPreferencesKeys.RUNTIME] = values.runtime
+            preferences[SettingsPreferencesKeys.SAMPLING] = values.sampling
+            preferences[SettingsPreferencesKeys.PROMPT_PERSONA] = values.promptPersona
+            preferences[SettingsPreferencesKeys.MEMORY] = values.memory
+            preferences[SettingsPreferencesKeys.CODING_WORKSPACE] = values.codingWorkspace
+            preferences[SettingsPreferencesKeys.PRIVACY] = values.privacy
+            preferences[SettingsPreferencesKeys.STORAGE] = values.storage
+            preferences[SettingsPreferencesKeys.DIAGNOSTICS] = values.diagnostics
+        }
     }
 
     suspend fun updateModel(value: String) {
