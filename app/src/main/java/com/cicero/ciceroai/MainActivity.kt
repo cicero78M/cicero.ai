@@ -1,8 +1,5 @@
 package com.cicero.ciceroai
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -20,7 +17,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.cicero.ciceroai.databinding.ActivityMainBinding
 import com.google.android.material.chip.Chip
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -88,17 +84,6 @@ class MainActivity : AppCompatActivity() {
             viewModel.onPromptTemplateChanged(text?.toString().orEmpty())
         }
 
-        binding.copyLogButton.setOnClickListener {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText(
-                getString(R.string.log_clipboard_label),
-                binding.logView.text?.toString().orEmpty()
-            )
-            clipboard.setPrimaryClip(clip)
-            Snackbar.make(binding.root, R.string.log_copied_confirmation, Snackbar.LENGTH_SHORT)
-                .show()
-        }
-
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
@@ -133,11 +118,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.promptInputLayout.error = state.promptError
         binding.outputView.text = state.outputText
-        binding.logView.text = if (state.logMessages.isEmpty()) {
-            getString(R.string.log_placeholder)
-        } else {
-            state.logMessages.joinToString(separator = "\n")
-        }
+        binding.logTicker.text = state.logMessages.lastOrNull() ?: getString(R.string.log_placeholder)
 
         updateModelSpinner(state.downloadedModels, state.selectedModelName)
         updateDownloadedModels(state.downloadedModels)
