@@ -6,6 +6,7 @@ import android.text.format.Formatter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cicero.ciceroai.llama.LlamaController
+import com.cicero.ciceroai.llama.LlamaSettingsParser
 import com.cicero.ciceroai.settings.SettingsConfig
 import com.cicero.ciceroai.settings.SettingsRepository
 import com.cicero.ciceroai.settings.settingsDataStore
@@ -292,8 +293,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
-                appendLog(context.getString(R.string.log_inference_requesting_completion, 256))
-                val result = controller.runInference(sanitizedPrompt, maxTokens = 256)
+                val samplingConfig = LlamaSettingsParser.parseSamplingConfig(
+                    latestSettingsConfig.sampling,
+                    defaultMaxTokens = 256
+                )
+                appendLog(
+                    context.getString(
+                        R.string.log_inference_requesting_completion,
+                        samplingConfig.maxTokens
+                    )
+                )
+                val result = controller.runInference(sanitizedPrompt, samplingConfig)
                 appendLog(context.getString(R.string.log_inference_success))
                 _uiState.update { state ->
                     state.copy(outputText = result)
@@ -591,10 +601,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val threads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+                val runtimeConfig = LlamaSettingsParser.parseRuntimeConfig(
+                    latestSettingsConfig.runtime,
+                    fallbackThreads = threads,
+                    fallbackContext = 2_048
+                )
                 controller.prepareSession(
                     modelFile = file,
-                    threadCount = threads,
-                    contextSize = 2_048
+                    runtimeConfig = runtimeConfig
                 )
                 _uiState.update { state ->
                     state.copy(
