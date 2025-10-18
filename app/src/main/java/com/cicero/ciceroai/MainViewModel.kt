@@ -1,12 +1,14 @@
 package com.cicero.ciceroai
 
 import android.app.Application
-import android.content.Context
 import android.net.Uri
 import android.text.format.Formatter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cicero.ciceroai.llama.LlamaController
+import com.cicero.ciceroai.settings.SettingsConfig
+import com.cicero.ciceroai.settings.SettingsRepository
+import com.cicero.ciceroai.settings.settingsDataStore
 import java.io.File
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -15,13 +17,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val controller = LlamaController(application)
-    private val preferences = application.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     private val standardModelOptions = listOf(
         StandardModelInfo(
             name = "Llama-3.2-3B Instruct",
@@ -127,6 +130,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val defaultStorageSetting = context.getString(R.string.settings_storage_default)
     private val defaultDiagnosticsSetting = context.getString(R.string.settings_diagnostics_default)
 
+    private val defaultSettingsConfig = SettingsConfig(
+        modelPath = null,
+        preset = defaultPresetSetting,
+        model = defaultModelSetting,
+        runtime = defaultRuntimeSetting,
+        sampling = defaultSamplingSetting,
+        promptPersona = defaultPromptPersonaSetting,
+        memory = defaultMemorySetting,
+        codingWorkspace = defaultCodingWorkspaceSetting,
+        privacy = defaultPrivacySetting,
+        storage = defaultStorageSetting,
+        diagnostics = defaultDiagnosticsSetting
+    )
+
+    private val settingsRepository = SettingsRepository(context.settingsDataStore, defaultSettingsConfig)
+
+    private var latestSettingsConfig: SettingsConfig = sanitizeConfig(
+        runBlocking { settingsRepository.settingsFlow.first() }
+    )
+
     private val _uiState = MutableStateFlow(
         MainUiState(
             currentPage = MainPage.HOME,
@@ -142,19 +165,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             outputText = context.getString(R.string.inference_placeholder),
             logMessages = emptyList(),
             downloadedModels = emptyList(),
-            selectedModelName = loadSavedModelName(),
+            selectedModelName = getSavedModelName(),
             standardModels = standardModelOptions,
             selectedStandardModelIndex = 0,
-            presetSetting = loadPresetSetting(),
-            modelSetting = loadModelSetting(),
-            runtimeSetting = loadRuntimeSetting(),
-            samplingSetting = loadSamplingSetting(),
-            promptPersonaSetting = loadPromptPersonaSetting(),
-            memorySetting = loadMemorySetting(),
-            codingWorkspaceSetting = loadCodingWorkspaceSetting(),
-            privacySetting = loadPrivacySetting(),
-            storageSetting = loadStorageSetting(),
-            diagnosticsSetting = loadDiagnosticsSetting()
+            presetSetting = latestSettingsConfig.preset,
+            modelSetting = latestSettingsConfig.model,
+            runtimeSetting = latestSettingsConfig.runtime,
+            samplingSetting = latestSettingsConfig.sampling,
+            promptPersonaSetting = latestSettingsConfig.promptPersona,
+            memorySetting = latestSettingsConfig.memory,
+            codingWorkspaceSetting = latestSettingsConfig.codingWorkspace,
+            privacySetting = latestSettingsConfig.privacy,
+            storageSetting = latestSettingsConfig.storage,
+            diagnosticsSetting = latestSettingsConfig.diagnostics
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -164,7 +187,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         refreshDownloadedModels()
-        val savedModel = loadSavedModelFile()
+        val savedModel = getSavedModelFile()
         if (savedModel != null) {
             prepareModel(savedModel)
         }
@@ -174,10 +197,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 appendLog(context.getString(R.string.log_inference_progress, printableToken))
             }
         }
+        viewModelScope.launch {
+            settingsRepository.settingsFlow.collect { config ->
+                val sanitizedConfig = sanitizeConfig(config)
+                latestSettingsConfig = sanitizedConfig
+                _uiState.update { state ->
+                    state.copy(
+                        presetSetting = sanitizedConfig.preset,
+                        modelSetting = sanitizedConfig.model,
+                        runtimeSetting = sanitizedConfig.runtime,
+                        samplingSetting = sanitizedConfig.sampling,
+                        promptPersonaSetting = sanitizedConfig.promptPersona,
+                        memorySetting = sanitizedConfig.memory,
+                        codingWorkspaceSetting = sanitizedConfig.codingWorkspace,
+                        privacySetting = sanitizedConfig.privacy,
+                        storageSetting = sanitizedConfig.storage,
+                        diagnosticsSetting = sanitizedConfig.diagnostics
+                    )
+                }
+                refreshDownloadedModels()
+            }
+        }
     }
 
     fun onDownloadButtonClicked() {
-        val savedModel = loadSavedModelFile()
+        val savedModel = getSavedModelFile()
         if (savedModel != null) {
             prepareModel(savedModel)
         } else {
@@ -285,7 +329,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onModelSelected(modelName: String) {
         val currentSelection = _uiState.value.selectedModelName
         if (currentSelection == modelName) {
-            val savedName = loadSavedModelName()
+            val savedName = getSavedModelName()
             if (savedName == modelName) {
                 return
             }
@@ -322,70 +366,113 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onPresetSettingChanged(value: String) {
-        persistSetting(KEY_PRESET_SETTING, value) { state ->
+        if (latestSettingsConfig.preset == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(preset = value)
+        viewModelScope.launch { settingsRepository.updatePreset(value) }
+        _uiState.update { state ->
             if (state.presetSetting == value) state else state.copy(presetSetting = value)
         }
     }
 
     fun onModelSettingChanged(value: String) {
-        persistSetting(KEY_MODEL_SETTING, value) { state ->
+        if (latestSettingsConfig.model == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(model = value)
+        viewModelScope.launch { settingsRepository.updateModel(value) }
+        _uiState.update { state ->
             if (state.modelSetting == value) state else state.copy(modelSetting = value)
         }
     }
 
     fun onRuntimeSettingChanged(value: String) {
-        persistSetting(KEY_RUNTIME_SETTING, value) { state ->
+        if (latestSettingsConfig.runtime == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(runtime = value)
+        viewModelScope.launch { settingsRepository.updateRuntime(value) }
+        _uiState.update { state ->
             if (state.runtimeSetting == value) state else state.copy(runtimeSetting = value)
         }
     }
 
     fun onSamplingSettingChanged(value: String) {
-        persistSetting(KEY_SAMPLING_SETTING, value) { state ->
+        if (latestSettingsConfig.sampling == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(sampling = value)
+        viewModelScope.launch { settingsRepository.updateSampling(value) }
+        _uiState.update { state ->
             if (state.samplingSetting == value) state else state.copy(samplingSetting = value)
         }
     }
 
     fun onPromptPersonaSettingChanged(value: String) {
-        persistSetting(KEY_PROMPT_PERSONA_SETTING, value) { state ->
+        if (latestSettingsConfig.promptPersona == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(promptPersona = value)
+        viewModelScope.launch { settingsRepository.updatePromptPersona(value) }
+        _uiState.update { state ->
             if (state.promptPersonaSetting == value) state else state.copy(promptPersonaSetting = value)
         }
     }
 
     fun onMemorySettingChanged(value: String) {
-        persistSetting(KEY_MEMORY_SETTING, value) { state ->
+        if (latestSettingsConfig.memory == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(memory = value)
+        viewModelScope.launch { settingsRepository.updateMemory(value) }
+        _uiState.update { state ->
             if (state.memorySetting == value) state else state.copy(memorySetting = value)
         }
     }
 
     fun onCodingWorkspaceSettingChanged(value: String) {
-        persistSetting(KEY_CODING_WORKSPACE_SETTING, value) { state ->
+        if (latestSettingsConfig.codingWorkspace == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(codingWorkspace = value)
+        viewModelScope.launch { settingsRepository.updateCodingWorkspace(value) }
+        _uiState.update { state ->
             if (state.codingWorkspaceSetting == value) state else state.copy(codingWorkspaceSetting = value)
         }
     }
 
     fun onPrivacySettingChanged(value: String) {
-        persistSetting(KEY_PRIVACY_SETTING, value) { state ->
+        if (latestSettingsConfig.privacy == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(privacy = value)
+        viewModelScope.launch { settingsRepository.updatePrivacy(value) }
+        _uiState.update { state ->
             if (state.privacySetting == value) state else state.copy(privacySetting = value)
         }
     }
 
     fun onStorageSettingChanged(value: String) {
-        persistSetting(KEY_STORAGE_SETTING, value) { state ->
+        if (latestSettingsConfig.storage == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(storage = value)
+        viewModelScope.launch { settingsRepository.updateStorage(value) }
+        _uiState.update { state ->
             if (state.storageSetting == value) state else state.copy(storageSetting = value)
         }
     }
 
     fun onDiagnosticsSettingChanged(value: String) {
-        persistSetting(KEY_DIAGNOSTICS_SETTING, value) { state ->
+        if (latestSettingsConfig.diagnostics == value) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(diagnostics = value)
+        viewModelScope.launch { settingsRepository.updateDiagnostics(value) }
+        _uiState.update { state ->
             if (state.diagnosticsSetting == value) state else state.copy(diagnosticsSetting = value)
         }
-    }
-
-    private fun persistSetting(key: String, value: String, reducer: (MainUiState) -> MainUiState) {
-        preferences.edit()
-            .putString(key, value)
-            .apply()
-        _uiState.update(reducer)
     }
 
     private fun startDownload(url: String) {
@@ -530,51 +617,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun loadSavedModelName(): String? {
-        val path = preferences.getString(KEY_MODEL_PATH, null) ?: return null
-        val file = File(path)
-        return if (file.exists()) {
-            file.name
-        } else {
-            removeModelPreference()
-            null
-        }
-    }
-
-    private fun loadSavedModelFile(): File? {
-        val path = preferences.getString(KEY_MODEL_PATH, null) ?: return null
-        val file = File(path)
-        return if (file.exists()) {
-            file
-        } else {
-            removeModelPreference()
-            null
-        }
-    }
-
     private fun saveModelReference(file: File) {
-        preferences.edit()
-            .putString(KEY_MODEL_PATH, file.absolutePath)
-            .apply()
+        latestSettingsConfig = latestSettingsConfig.copy(modelPath = file.absolutePath)
+        viewModelScope.launch { settingsRepository.updateModelPath(file.absolutePath) }
         _uiState.update { state -> state.copy(selectedModelName = file.name) }
     }
 
     private fun clearModelReference() {
-        removeModelPreference()
+        latestSettingsConfig = latestSettingsConfig.copy(modelPath = null)
+        viewModelScope.launch { settingsRepository.clearModelPath() }
         _uiState.update { state -> state.copy(selectedModelName = null) }
         refreshDownloadedModels()
-    }
-
-    private fun removeModelPreference() {
-        preferences.edit()
-            .remove(KEY_MODEL_PATH)
-            .apply()
     }
 
     private fun refreshDownloadedModels() {
         val modelsDir = File(context.filesDir, "models")
         val names = modelsDir.listFiles()?.filter { it.isFile }?.map { it.name }?.sorted().orEmpty()
-        val savedName = loadSavedModelName()
+        val savedFile = latestSettingsConfig.modelPath?.let { File(it) }
+        val savedName = if (savedFile != null && savedFile.exists()) {
+            savedFile.name
+        } else {
+            if (savedFile != null) {
+                latestSettingsConfig = latestSettingsConfig.copy(modelPath = null)
+                viewModelScope.launch { settingsRepository.clearModelPath() }
+            }
+            null
+        }
         val currentSelection = _uiState.value.selectedModelName
         val selectedName = when {
             savedName != null && names.contains(savedName) -> savedName
@@ -589,31 +657,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun loadPresetSetting(): String = loadSetting(KEY_PRESET_SETTING, defaultPresetSetting)
+    private fun getSavedModelFile(): File? {
+        val path = latestSettingsConfig.modelPath ?: return null
+        val file = File(path)
+        return if (file.exists()) {
+            file
+        } else {
+            latestSettingsConfig = latestSettingsConfig.copy(modelPath = null)
+            viewModelScope.launch { settingsRepository.clearModelPath() }
+            null
+        }
+    }
 
-    private fun loadModelSetting(): String = loadSetting(KEY_MODEL_SETTING, defaultModelSetting)
+    private fun getSavedModelName(): String? = getSavedModelFile()?.name
 
-    private fun loadRuntimeSetting(): String = loadSetting(KEY_RUNTIME_SETTING, defaultRuntimeSetting)
-
-    private fun loadSamplingSetting(): String = loadSetting(KEY_SAMPLING_SETTING, defaultSamplingSetting)
-
-    private fun loadPromptPersonaSetting(): String =
-        loadSetting(KEY_PROMPT_PERSONA_SETTING, defaultPromptPersonaSetting)
-
-    private fun loadMemorySetting(): String = loadSetting(KEY_MEMORY_SETTING, defaultMemorySetting)
-
-    private fun loadCodingWorkspaceSetting(): String =
-        loadSetting(KEY_CODING_WORKSPACE_SETTING, defaultCodingWorkspaceSetting)
-
-    private fun loadPrivacySetting(): String = loadSetting(KEY_PRIVACY_SETTING, defaultPrivacySetting)
-
-    private fun loadStorageSetting(): String = loadSetting(KEY_STORAGE_SETTING, defaultStorageSetting)
-
-    private fun loadDiagnosticsSetting(): String =
-        loadSetting(KEY_DIAGNOSTICS_SETTING, defaultDiagnosticsSetting)
-
-    private fun loadSetting(key: String, defaultValue: String): String =
-        preferences.getString(key, defaultValue) ?: defaultValue
+    private fun sanitizeConfig(config: SettingsConfig): SettingsConfig {
+        val path = config.modelPath ?: return config
+        val file = File(path)
+        return if (file.exists()) {
+            config
+        } else {
+            viewModelScope.launch { settingsRepository.clearModelPath() }
+            config.copy(modelPath = null)
+        }
+    }
 
     private fun resolveFileName(url: String): String {
         val lastSegment = Uri.parse(url).lastPathSegment?.takeIf { it.isNotBlank() }
@@ -630,18 +697,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     companion object {
-        private const val PREF_NAME = "cicero_model_storage"
-        private const val KEY_MODEL_PATH = "model_path"
-        private const val KEY_PRESET_SETTING = "preset_setting"
-        private const val KEY_MODEL_SETTING = "model_setting"
-        private const val KEY_RUNTIME_SETTING = "runtime_setting"
-        private const val KEY_SAMPLING_SETTING = "sampling_setting"
-        private const val KEY_PROMPT_PERSONA_SETTING = "prompt_persona_setting"
-        private const val KEY_MEMORY_SETTING = "memory_setting"
-        private const val KEY_CODING_WORKSPACE_SETTING = "coding_workspace_setting"
-        private const val KEY_PRIVACY_SETTING = "privacy_setting"
-        private const val KEY_STORAGE_SETTING = "storage_setting"
-        private const val KEY_DIAGNOSTICS_SETTING = "diagnostics_setting"
         private const val MODEL_URL = "https://huggingface.co/TheBloke/deepseek-coder-1.3b-instruct-GGUF/resolve/main/deepseek-coder-1.3b-instruct.Q4_K_M.gguf"
     }
 }

@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.jvm.coroutines.core)
     implementation(libs.jvm.coroutines.android)
     testImplementation(libs.junit)
