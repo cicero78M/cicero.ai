@@ -24,39 +24,45 @@ class LlamaController(context: Context) {
 
     suspend fun prepareSession(
         modelFile: File,
-        threadCount: Int,
-        contextSize: Int
+        runtimeConfig: RuntimeConfig
     ): LlamaSession = withContext(dispatcher) {
         session
-            ?.takeIf { it.modelFile.absolutePath == modelFile.absolutePath && it.modelFile.exists() }
+            ?.takeIf {
+                it.modelFile.absolutePath == modelFile.absolutePath &&
+                    it.modelFile.exists() &&
+                    it.runtimeConfig == runtimeConfig
+            }
             ?.let { return@withContext it }
         session?.let {
             LlamaBridge.nativeRelease(it.handle)
             session = null
         }
 
-        val handle = LlamaBridge.nativeInit(modelFile.absolutePath, threadCount, contextSize)
-        val newSession = LlamaSession(handle, modelFile)
+        val sanitizedConfig = runtimeConfig.sanitized()
+        val handle = LlamaBridge.nativeInit(modelFile.absolutePath, sanitizedConfig)
+        val newSession = LlamaSession(handle, modelFile, sanitizedConfig)
         session = newSession
         return@withContext newSession
     }
 
     suspend fun prepareSessionFromAsset(
         assetName: String,
-        threadCount: Int,
-        contextSize: Int
+        runtimeConfig: RuntimeConfig
     ): LlamaSession {
         val modelFile = assetManager.copyModelIfNeeded(assetName)
-        return prepareSession(modelFile, threadCount, contextSize)
+        return prepareSession(modelFile, runtimeConfig)
     }
 
-    suspend fun runInference(prompt: String, maxTokens: Int): String = withContext(dispatcher) {
+    suspend fun runInference(
+        prompt: String,
+        samplingConfig: SamplingConfig
+    ): String = withContext(dispatcher) {
         val currentSession =
             session ?: error("Model belum siap. Panggil prepareSession() terlebih dahulu.")
         LlamaBridge.nativeCompletionWithProgress(
             currentSession.handle,
             prompt,
-            maxTokens
+            samplingConfig
         ) { token ->
             _inferenceProgress.tryEmit(token)
         }
@@ -80,5 +86,6 @@ class LlamaController(context: Context) {
 
 data class LlamaSession(
     val handle: Long,
-    val modelFile: File
+    val modelFile: File,
+    val runtimeConfig: RuntimeConfig
 )

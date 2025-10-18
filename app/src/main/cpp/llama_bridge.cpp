@@ -4,11 +4,13 @@
 #include "llama.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -41,10 +43,59 @@ private:
 struct LlamaSession {
     std::string model_path;
     int thread_count = 0;
+    int thread_count_batch = 0;
     int context_size = 0;
     llama_model* model = nullptr;
     llama_context* context = nullptr;
     int32_t tokens_processed = 0;
+};
+
+struct RuntimeNativeConfig {
+    int32_t thread_count = 0;
+    int32_t thread_count_batch = 0;
+    bool has_thread_count_batch = false;
+    int32_t context_size = 0;
+    int32_t batch_size = 0;
+    bool has_batch_size = false;
+    int32_t ubatch_size = 0;
+    bool has_ubatch_size = false;
+    int32_t seq_max = 0;
+    bool has_seq_max = false;
+    int32_t n_gpu_layers = 0;
+    bool has_n_gpu_layers = false;
+    int32_t main_gpu = 0;
+    bool has_main_gpu = false;
+    int32_t flash_attention = 0;
+    bool has_flash_attention = false;
+    float rope_freq_base = 0.0f;
+    bool has_rope_freq_base = false;
+    float rope_freq_scale = 0.0f;
+    bool has_rope_freq_scale = false;
+    bool offload_kqv = false;
+    bool has_offload_kqv = false;
+    bool no_perf = true;
+    bool has_no_perf = false;
+    bool embeddings = false;
+    bool has_embeddings = false;
+    bool kv_unified = false;
+    bool has_kv_unified = false;
+    bool use_mmap = false;
+    bool has_use_mmap = false;
+    bool use_mlock = false;
+    bool has_use_mlock = false;
+};
+
+struct SamplingNativeOptions {
+    int32_t max_tokens = 0;
+    std::optional<float> temperature;
+    std::optional<float> top_p;
+    std::optional<int32_t> top_k;
+    std::optional<float> repeat_penalty;
+    std::optional<int32_t> repeat_last_n;
+    std::optional<float> frequency_penalty;
+    std::optional<float> presence_penalty;
+    std::vector<std::string> stop_sequences;
+    std::optional<uint32_t> seed;
 };
 
 std::once_flag g_backend_once;
@@ -92,6 +143,271 @@ void throwJavaException(JNIEnv* env, const char* class_name, const std::string& 
         clazz = env->FindClass("java/lang/RuntimeException");
     }
     env->ThrowNew(clazz, message.c_str());
+}
+
+std::optional<int32_t> getOptionalInt(JNIEnv* env, jobject object, jmethodID method) {
+    if (!env || !object || !method) {
+        return std::nullopt;
+    }
+
+    jobject value_obj = env->CallObjectMethod(object, method);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Gagal membaca nilai Integer dari konfigurasi runtime.");
+    }
+    if (!value_obj) {
+        return std::nullopt;
+    }
+
+    jclass integer_class = env->FindClass("java/lang/Integer");
+    if (!integer_class) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(value_obj);
+        throw std::runtime_error("java.lang.Integer tidak tersedia di lingkungan JNI.");
+    }
+    jmethodID int_value_method = env->GetMethodID(integer_class, "intValue", "()I");
+    if (!int_value_method) {
+        env->DeleteLocalRef(integer_class);
+        env->DeleteLocalRef(value_obj);
+        throw std::runtime_error("Metode intValue tidak ditemukan pada java.lang.Integer.");
+    }
+    const jint result = env->CallIntMethod(value_obj, int_value_method);
+    env->DeleteLocalRef(integer_class);
+    env->DeleteLocalRef(value_obj);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Gagal mengambil nilai Integer dari konfigurasi runtime.");
+    }
+    return static_cast<int32_t>(result);
+}
+
+std::optional<float> getOptionalFloat(JNIEnv* env, jobject object, jmethodID method) {
+    if (!env || !object || !method) {
+        return std::nullopt;
+    }
+
+    jobject value_obj = env->CallObjectMethod(object, method);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Gagal membaca nilai Float dari konfigurasi runtime.");
+    }
+    if (!value_obj) {
+        return std::nullopt;
+    }
+
+    jclass float_class = env->FindClass("java/lang/Float");
+    if (!float_class) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(value_obj);
+        throw std::runtime_error("java.lang.Float tidak tersedia di lingkungan JNI.");
+    }
+    jmethodID float_value_method = env->GetMethodID(float_class, "floatValue", "()F");
+    if (!float_value_method) {
+        env->DeleteLocalRef(float_class);
+        env->DeleteLocalRef(value_obj);
+        throw std::runtime_error("Metode floatValue tidak ditemukan pada java.lang.Float.");
+    }
+    const jfloat result = env->CallFloatMethod(value_obj, float_value_method);
+    env->DeleteLocalRef(float_class);
+    env->DeleteLocalRef(value_obj);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Gagal mengambil nilai Float dari konfigurasi runtime.");
+    }
+    return static_cast<float>(result);
+}
+
+std::optional<bool> getOptionalBoolean(JNIEnv* env, jobject object, jmethodID method) {
+    if (!env || !object || !method) {
+        return std::nullopt;
+    }
+
+    jobject value_obj = env->CallObjectMethod(object, method);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Gagal membaca nilai Boolean dari konfigurasi runtime.");
+    }
+    if (!value_obj) {
+        return std::nullopt;
+    }
+
+    jclass boolean_class = env->FindClass("java/lang/Boolean");
+    if (!boolean_class) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(value_obj);
+        throw std::runtime_error("java.lang.Boolean tidak tersedia di lingkungan JNI.");
+    }
+    jmethodID bool_value_method = env->GetMethodID(boolean_class, "booleanValue", "()Z");
+    if (!bool_value_method) {
+        env->DeleteLocalRef(boolean_class);
+        env->DeleteLocalRef(value_obj);
+        throw std::runtime_error("Metode booleanValue tidak ditemukan pada java.lang.Boolean.");
+    }
+    const jboolean result = env->CallBooleanMethod(value_obj, bool_value_method);
+    env->DeleteLocalRef(boolean_class);
+    env->DeleteLocalRef(value_obj);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Gagal mengambil nilai Boolean dari konfigurasi runtime.");
+    }
+    return result == JNI_TRUE;
+}
+
+RuntimeNativeConfig parseRuntimeConfig(JNIEnv* env, jobject runtime_config) {
+    if (!env) {
+        throw std::runtime_error("Lingkungan JNI tidak tersedia untuk runtime config.");
+    }
+    if (!runtime_config) {
+        throw std::runtime_error("RuntimeConfig tidak boleh null.");
+    }
+
+    jclass config_class = env->GetObjectClass(runtime_config);
+    if (!config_class) {
+        throw std::runtime_error("Tidak dapat mengambil kelas RuntimeConfig.");
+    }
+
+    jmethodID get_thread_count = env->GetMethodID(config_class, "getThreadCount", "()I");
+    jmethodID get_context_size = env->GetMethodID(config_class, "getContextSize", "()I");
+    jmethodID get_thread_batch = env->GetMethodID(config_class, "getThreadCountBatch", "()Ljava/lang/Integer;");
+    jmethodID get_batch_size = env->GetMethodID(config_class, "getBatchSize", "()Ljava/lang/Integer;");
+    jmethodID get_ubatch_size = env->GetMethodID(config_class, "getUbatchSize", "()Ljava/lang/Integer;");
+    jmethodID get_seq_max = env->GetMethodID(config_class, "getSeqMax", "()Ljava/lang/Integer;");
+    jmethodID get_n_gpu_layers = env->GetMethodID(config_class, "getNGpuLayers", "()Ljava/lang/Integer;");
+    jmethodID get_main_gpu = env->GetMethodID(config_class, "getMainGpu", "()Ljava/lang/Integer;");
+    jmethodID get_flash_attention = env->GetMethodID(config_class, "getFlashAttention", "()Ljava/lang/Integer;");
+    jmethodID get_rope_freq_base = env->GetMethodID(config_class, "getRopeFreqBase", "()Ljava/lang/Float;");
+    jmethodID get_rope_freq_scale = env->GetMethodID(config_class, "getRopeFreqScale", "()Ljava/lang/Float;");
+    jmethodID get_offload_kqv = env->GetMethodID(config_class, "getOffloadKqv", "()Ljava/lang/Boolean;");
+    jmethodID get_no_perf = env->GetMethodID(config_class, "getNoPerf", "()Ljava/lang/Boolean;");
+    jmethodID get_embeddings = env->GetMethodID(config_class, "getEmbeddings", "()Ljava/lang/Boolean;");
+    jmethodID get_kv_unified = env->GetMethodID(config_class, "getKvUnified", "()Ljava/lang/Boolean;");
+    jmethodID get_use_mmap = env->GetMethodID(config_class, "getUseMmap", "()Ljava/lang/Boolean;");
+    jmethodID get_use_mlock = env->GetMethodID(config_class, "getUseMlock", "()Ljava/lang/Boolean;");
+
+    RuntimeNativeConfig config;
+    config.thread_count = env->CallIntMethod(runtime_config, get_thread_count);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(config_class);
+        throw std::runtime_error("Nilai threadCount tidak valid pada runtime config.");
+    }
+    config.context_size = env->CallIntMethod(runtime_config, get_context_size);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(config_class);
+        throw std::runtime_error("Nilai contextSize tidak valid pada runtime config.");
+    }
+
+    if (auto value = getOptionalInt(env, runtime_config, get_thread_batch)) {
+        if (*value > 0) {
+            config.thread_count_batch = *value;
+            config.has_thread_count_batch = true;
+        }
+    }
+    if (auto value = getOptionalInt(env, runtime_config, get_batch_size)) {
+        if (*value > 0) {
+            config.batch_size = *value;
+            config.has_batch_size = true;
+        }
+    }
+    if (auto value = getOptionalInt(env, runtime_config, get_ubatch_size)) {
+        if (*value > 0) {
+            config.ubatch_size = *value;
+            config.has_ubatch_size = true;
+        }
+    }
+    if (auto value = getOptionalInt(env, runtime_config, get_seq_max)) {
+        if (*value > 0) {
+            config.seq_max = *value;
+            config.has_seq_max = true;
+        }
+    }
+    if (auto value = getOptionalInt(env, runtime_config, get_n_gpu_layers)) {
+        if (*value >= 0) {
+            config.n_gpu_layers = *value;
+            config.has_n_gpu_layers = true;
+        }
+    }
+    if (auto value = getOptionalInt(env, runtime_config, get_main_gpu)) {
+        if (*value >= 0) {
+            config.main_gpu = *value;
+            config.has_main_gpu = true;
+        }
+    }
+    if (auto value = getOptionalInt(env, runtime_config, get_flash_attention)) {
+        if (*value < -1 || *value > 1) {
+            env->DeleteLocalRef(config_class);
+            throw std::runtime_error("Nilai flash_attn tidak valid (gunakan -1, 0, atau 1).");
+        }
+        config.flash_attention = *value;
+        config.has_flash_attention = true;
+    }
+    if (auto value = getOptionalFloat(env, runtime_config, get_rope_freq_base)) {
+        if (*value > 0.0f) {
+            config.rope_freq_base = *value;
+            config.has_rope_freq_base = true;
+        }
+    }
+    if (auto value = getOptionalFloat(env, runtime_config, get_rope_freq_scale)) {
+        if (*value > 0.0f) {
+            config.rope_freq_scale = *value;
+            config.has_rope_freq_scale = true;
+        }
+    }
+    if (auto value = getOptionalBoolean(env, runtime_config, get_offload_kqv)) {
+        config.offload_kqv = *value;
+        config.has_offload_kqv = true;
+    }
+    if (auto value = getOptionalBoolean(env, runtime_config, get_no_perf)) {
+        config.no_perf = *value;
+        config.has_no_perf = true;
+    }
+    if (auto value = getOptionalBoolean(env, runtime_config, get_embeddings)) {
+        config.embeddings = *value;
+        config.has_embeddings = true;
+    }
+    if (auto value = getOptionalBoolean(env, runtime_config, get_kv_unified)) {
+        config.kv_unified = *value;
+        config.has_kv_unified = true;
+    }
+    if (auto value = getOptionalBoolean(env, runtime_config, get_use_mmap)) {
+        config.use_mmap = *value;
+        config.has_use_mmap = true;
+    }
+    if (auto value = getOptionalBoolean(env, runtime_config, get_use_mlock)) {
+        config.use_mlock = *value;
+        config.has_use_mlock = true;
+    }
+
+    env->DeleteLocalRef(config_class);
+
+    if (config.thread_count <= 0 || config.context_size <= 0) {
+        throw std::runtime_error("Parameter inisialisasi tidak valid.");
+    }
+
+    return config;
+}
+
+std::vector<std::string> extractStopSequences(JNIEnv* env, jobjectArray sequences) {
+    std::vector<std::string> result;
+    if (!env || !sequences) {
+        return result;
+    }
+
+    const jsize length = env->GetArrayLength(sequences);
+    result.reserve(static_cast<size_t>(length));
+    for (jsize index = 0; index < length; ++index) {
+        jstring element = static_cast<jstring>(env->GetObjectArrayElement(sequences, index));
+        if (!element) {
+            continue;
+        }
+        JniString text(env, element);
+        if (text.get() && text.get()[0] != '\0') {
+            result.emplace_back(text.get());
+        }
+        env->DeleteLocalRef(element);
+    }
+    return result;
 }
 
 std::string tokenToString(const llama_vocab* vocab, llama_token token) {
@@ -149,9 +465,116 @@ std::vector<llama_token> tokenizePrompt(const llama_model* model, const std::str
     return tokens;
 }
 
+RuntimeNativeConfig makeDefaultRuntimeConfig(int thread_count, int context_size) {
+    RuntimeNativeConfig config;
+    config.thread_count = thread_count;
+    config.context_size = context_size;
+    return config;
+}
+
+jlong createSession(JNIEnv* env,
+                    const char* model_path,
+                    const RuntimeNativeConfig& config) {
+    if (!model_path) {
+        throw std::runtime_error("Parameter inisialisasi tidak valid.");
+    }
+    if (config.thread_count <= 0 || config.context_size <= 0) {
+        throw std::runtime_error("Parameter inisialisasi tidak valid.");
+    }
+
+    auto session = std::make_unique<LlamaSession>();
+    session->model_path = model_path;
+    session->thread_count = config.thread_count;
+    session->thread_count_batch = config.has_thread_count_batch ? config.thread_count_batch
+                                                                : config.thread_count;
+    session->context_size = config.context_size;
+
+    retainBackend();
+
+    llama_model_params model_params = llama_model_default_params();
+    if (config.has_n_gpu_layers) {
+        model_params.n_gpu_layers = config.n_gpu_layers;
+    }
+    if (config.has_main_gpu) {
+        model_params.main_gpu = config.main_gpu;
+    }
+    if (config.has_use_mmap) {
+        model_params.use_mmap = config.use_mmap;
+    }
+    if (config.has_use_mlock) {
+        model_params.use_mlock = config.use_mlock;
+    }
+
+    model_params.progress_callback = nullptr;
+
+    session->model = llama_model_load_from_file(session->model_path.c_str(), model_params);
+    if (!session->model) {
+        releaseBackend();
+        std::ostringstream msg;
+        msg << "Gagal memuat model: " << session->model_path;
+        throw std::runtime_error(msg.str());
+    }
+
+    llama_context_params ctx_params = llama_context_default_params();
+    ctx_params.n_ctx = session->context_size;
+    if (config.has_batch_size) {
+        ctx_params.n_batch = std::max<int32_t>(1, config.batch_size);
+    } else {
+        ctx_params.n_batch = std::min(session->context_size, 512);
+    }
+    if (config.has_ubatch_size) {
+        ctx_params.n_ubatch = std::max<int32_t>(1, config.ubatch_size);
+    }
+    if (config.has_seq_max) {
+        ctx_params.n_seq_max = std::max<int32_t>(1, config.seq_max);
+    }
+    ctx_params.n_threads = session->thread_count;
+    ctx_params.n_threads_batch = config.has_thread_count_batch ? config.thread_count_batch
+                                                               : session->thread_count;
+    if (config.has_flash_attention) {
+        ctx_params.flash_attn_type = static_cast<llama_flash_attn_type>(config.flash_attention);
+    }
+    if (config.has_rope_freq_base) {
+        ctx_params.rope_freq_base = config.rope_freq_base;
+    }
+    if (config.has_rope_freq_scale) {
+        ctx_params.rope_freq_scale = config.rope_freq_scale;
+    }
+    if (config.has_offload_kqv) {
+        ctx_params.offload_kqv = config.offload_kqv;
+    }
+    if (config.has_no_perf) {
+        ctx_params.no_perf = config.no_perf;
+    } else {
+        ctx_params.no_perf = true;
+    }
+    if (config.has_embeddings) {
+        ctx_params.embeddings = config.embeddings;
+    }
+    if (config.has_kv_unified) {
+        ctx_params.kv_unified = config.kv_unified;
+    }
+
+    session->context = llama_init_from_model(session->model, ctx_params);
+    if (!session->context) {
+        llama_model_free(session->model);
+        session->model = nullptr;
+        releaseBackend();
+        throw std::runtime_error("Gagal membuat konteks llama.");
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, kTag,
+                        "Session siap. Model=%s, threads=%d, ctx=%d",
+                        session->model_path.c_str(),
+                        session->thread_count,
+                        session->context_size);
+
+    return toHandle(session.release());
+}
+
 std::string runCompletion(LlamaSession* session,
                           const std::string& prompt,
-                          int max_tokens,
+                          const SamplingNativeOptions& options,
                           const std::function<void(const std::string&)>& on_token) {
     if (!session || !session->model || !session->context) {
         throw std::runtime_error("Session belum siap digunakan.");
@@ -159,7 +582,7 @@ std::string runCompletion(LlamaSession* session,
 
     session->tokens_processed = 0;
 
-    if (max_tokens <= 0) {
+    if (options.max_tokens <= 0) {
         return std::string();
     }
 
@@ -173,7 +596,7 @@ std::string runCompletion(LlamaSession* session,
         }
         tokens.push_back(bos);
     }
-    const int total_needed = static_cast<int>(tokens.size()) + max_tokens;
+    const int total_needed = static_cast<int>(tokens.size()) + options.max_tokens;
     if (total_needed > session->context_size) {
         std::ostringstream msg;
         msg << "Konteks terlalu kecil: membutuhkan " << total_needed
@@ -181,7 +604,7 @@ std::string runCompletion(LlamaSession* session,
         throw std::runtime_error(msg.str());
     }
 
-    llama_set_n_threads(session->context, session->thread_count, session->thread_count);
+    llama_set_n_threads(session->context, session->thread_count, session->thread_count_batch);
     // llama_kv_cache_clear(session->context) is not available in the pinned llama.cpp revision.
 
     auto evaluate_tokens = [&](const llama_token* data, int32_t count) {
@@ -235,43 +658,100 @@ std::string runCompletion(LlamaSession* session,
     }
 
     std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> sampler_guard(sampler, &llama_sampler_free);
-    if (auto* greedy = llama_sampler_init_greedy()) {
-        using ChainAddReturn = decltype(llama_sampler_chain_add(sampler, greedy));
 
-        const auto add_sampler = [](llama_sampler* chain,
-                                    llama_sampler* sampler_to_add,
-                                    auto tag) {
-            if constexpr (decltype(tag)::value) {
-                return llama_sampler_chain_add(chain, sampler_to_add);
-            } else {
-                llama_sampler_chain_add(chain, sampler_to_add);
-                return true;
-            }
-        };
-
-        const bool added = add_sampler(sampler, greedy, std::is_same<ChainAddReturn, bool>{});
-
-        if (!added) {
-            llama_sampler_free(greedy);
-            throw std::runtime_error("Tidak dapat menambahkan sampler greedy.");
+    auto add_sampler_to_chain = [&](llama_sampler* sampler_to_add, const char* name) {
+        if (!sampler_to_add) {
+            std::ostringstream msg;
+            msg << "Tidak dapat membuat sampler " << name << '.';
+            throw std::runtime_error(msg.str());
         }
-    } else {
-        throw std::runtime_error("Tidak dapat membuat sampler greedy.");
+        using ChainAddReturn = decltype(llama_sampler_chain_add(sampler, sampler_to_add));
+        if constexpr (std::is_same_v<ChainAddReturn, bool>) {
+            const bool added = llama_sampler_chain_add(sampler, sampler_to_add);
+            if (!added) {
+                llama_sampler_free(sampler_to_add);
+                std::ostringstream msg;
+                msg << "Tidak dapat menambahkan sampler " << name << " ke rantai.";
+                throw std::runtime_error(msg.str());
+            }
+        } else {
+            llama_sampler_chain_add(sampler, sampler_to_add);
+        }
+    };
+
+    const float repeat_penalty_value = options.repeat_penalty.value_or(1.0f);
+    const float frequency_penalty_value = options.frequency_penalty.value_or(0.0f);
+    const float presence_penalty_value = options.presence_penalty.value_or(0.0f);
+    const bool use_repeat_penalty = options.repeat_penalty.has_value() && repeat_penalty_value > 1.0f + 1e-5f;
+    const bool use_frequency_penalty = options.frequency_penalty.has_value() && std::fabs(frequency_penalty_value) > 1e-5f;
+    const bool use_presence_penalty = options.presence_penalty.has_value() && std::fabs(presence_penalty_value) > 1e-5f;
+    if (use_repeat_penalty || use_frequency_penalty || use_presence_penalty) {
+        const int32_t repeat_last_n = options.repeat_last_n.value_or(
+                std::min(session->context_size, 64));
+        llama_sampler* penalties = llama_sampler_init_penalties(
+                repeat_last_n,
+                use_repeat_penalty ? repeat_penalty_value : 1.0f,
+                use_frequency_penalty ? frequency_penalty_value : 0.0f,
+                use_presence_penalty ? presence_penalty_value : 0.0f);
+        add_sampler_to_chain(penalties, "penalties");
+    }
+
+    if (options.top_k.has_value()) {
+        llama_sampler* top_k = llama_sampler_init_top_k(options.top_k.value());
+        add_sampler_to_chain(top_k, "top_k");
+    }
+
+    if (options.top_p.has_value()) {
+        llama_sampler* top_p = llama_sampler_init_top_p(options.top_p.value(), 1);
+        add_sampler_to_chain(top_p, "top_p");
+    }
+
+    if (options.temperature.has_value()) {
+        llama_sampler* temperature = llama_sampler_init_temp(options.temperature.value());
+        add_sampler_to_chain(temperature, "temperature");
+    }
+
+    const uint32_t sampler_seed = options.seed.value_or(LLAMA_DEFAULT_SEED);
+    llama_sampler* dist = llama_sampler_init_dist(sampler_seed);
+    add_sampler_to_chain(dist, "dist");
+
+    for (llama_token token : tokens) {
+        llama_sampler_accept(sampler, token);
     }
 
     std::string completion;
-    completion.reserve(static_cast<size_t>(max_tokens) * 4);
+    completion.reserve(static_cast<size_t>(options.max_tokens) * 4);
 
-    for (int generated = 0; generated < max_tokens; ++generated) {
+    for (int generated = 0; generated < options.max_tokens; ++generated) {
         const llama_token next = llama_sampler_sample(sampler, session->context, -1);
 
         if (llama_vocab_is_eog(vocab, next)) {
             break;
         }
 
-        llama_sampler_accept(sampler, next);
         const std::string token_text = tokenToString(vocab, next);
-        completion += token_text;
+        std::string candidate = completion;
+        candidate += token_text;
+
+        bool reached_stop = false;
+        for (const auto& stop : options.stop_sequences) {
+            if (!stop.empty() && candidate.size() >= stop.size()) {
+                const size_t offset = candidate.size() - stop.size();
+                if (candidate.compare(offset, stop.size(), stop) == 0) {
+                    candidate.erase(offset);
+                    reached_stop = true;
+                    break;
+                }
+            }
+        }
+
+        if (reached_stop) {
+            completion = std::move(candidate);
+            break;
+        }
+
+        llama_sampler_accept(sampler, next);
+        completion = std::move(candidate);
 
         if (on_token) {
             on_token(token_text);
@@ -294,49 +774,12 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeInit(
         jint contextSize) {
     try {
         JniString path(env, modelPath);
-        if (!path.get() || contextSize <= 0 || threadCount <= 0) {
+        if (!path.get()) {
             throw std::runtime_error("Parameter inisialisasi tidak valid.");
         }
 
-        auto session = std::make_unique<LlamaSession>();
-        session->model_path = path.get();
-        session->thread_count = threadCount;
-        session->context_size = contextSize;
-
-        retainBackend();
-
-        llama_model_params model_params = llama_model_default_params();
-        model_params.progress_callback = nullptr;
-        session->model = llama_model_load_from_file(session->model_path.c_str(), model_params);
-        if (!session->model) {
-            releaseBackend();
-            std::ostringstream msg;
-            msg << "Gagal memuat model: " << session->model_path;
-            throw std::runtime_error(msg.str());
-        }
-
-        llama_context_params ctx_params = llama_context_default_params();
-        ctx_params.n_ctx = session->context_size;
-        ctx_params.n_batch = std::min(session->context_size, 512);
-        ctx_params.n_threads = session->thread_count;
-        ctx_params.n_threads_batch = session->thread_count;
-        ctx_params.no_perf = true;
-
-        session->context = llama_init_from_model(session->model, ctx_params);
-        if (!session->context) {
-            llama_model_free(session->model);
-            session->model = nullptr;
-            releaseBackend();
-            throw std::runtime_error("Gagal membuat konteks llama.");
-        }
-
-        __android_log_print(ANDROID_LOG_INFO, kTag,
-                            "Session siap. Model=%s, threads=%d, ctx=%d",
-                            session->model_path.c_str(),
-                            session->thread_count,
-                            session->context_size);
-
-        return toHandle(session.release());
+        RuntimeNativeConfig config = makeDefaultRuntimeConfig(threadCount, contextSize);
+        return createSession(env, path.get(), config);
     } catch (const std::exception& ex) {
         __android_log_print(ANDROID_LOG_ERROR, kTag, "nativeInit gagal: %s", ex.what());
         throwJavaException(env, "java/lang/IllegalStateException", ex.what());
@@ -344,13 +787,43 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeInit(
     }
 }
 
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_cicero_ciceroai_llama_LlamaBridge_nativeInitWithConfig(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring modelPath,
+        jobject runtimeConfig) {
+    try {
+        JniString path(env, modelPath);
+        if (!path.get()) {
+            throw std::runtime_error("Parameter inisialisasi tidak valid.");
+        }
+
+        RuntimeNativeConfig config = parseRuntimeConfig(env, runtimeConfig);
+        return createSession(env, path.get(), config);
+    } catch (const std::exception& ex) {
+        __android_log_print(ANDROID_LOG_ERROR, kTag, "nativeInitWithConfig gagal: %s", ex.what());
+        throwJavaException(env, "java/lang/IllegalStateException", ex.what());
+        return 0;
+    }
+}
+
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletion(
+Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletionWithOptions(
         JNIEnv* env,
         jobject /* thiz */,
         jlong handle,
         jstring prompt,
         jint maxTokens,
+        jfloat temperature,
+        jfloat topP,
+        jint topK,
+        jfloat repeatPenalty,
+        jint repeatLastN,
+        jfloat frequencyPenalty,
+        jfloat presencePenalty,
+        jobjectArray stopSequences,
+        jint seed,
         jobject listener) {
     auto* session = fromHandle(handle);
     try {
@@ -360,6 +833,35 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletion(
 
         JniString prompt_utf(env, prompt);
         const std::string prompt_str = prompt_utf.get() ? prompt_utf.get() : "";
+
+        SamplingNativeOptions options;
+        options.max_tokens = std::max(0, static_cast<int>(maxTokens));
+        if (std::isfinite(temperature) && temperature > 0.0f) {
+            options.temperature = temperature;
+        }
+        if (std::isfinite(topP) && topP > 0.0f && topP <= 1.0f) {
+            options.top_p = topP;
+        }
+        if (topK > 0) {
+            options.top_k = topK;
+        }
+        if (std::isfinite(repeatPenalty) && repeatPenalty > 0.0f) {
+            options.repeat_penalty = repeatPenalty;
+        }
+        if (repeatLastN >= 0) {
+            options.repeat_last_n = repeatLastN;
+        }
+        if (std::isfinite(frequencyPenalty)) {
+            options.frequency_penalty = frequencyPenalty;
+        }
+        if (std::isfinite(presencePenalty)) {
+            options.presence_penalty = presencePenalty;
+        }
+        if (seed >= 0) {
+            options.seed = static_cast<uint32_t>(seed);
+        }
+        options.stop_sequences = extractStopSequences(env, stopSequences);
+
         std::function<void(const std::string&)> progress_callback;
         if (listener) {
             jclass listener_class = env->GetObjectClass(listener);
@@ -396,13 +898,40 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletion(
         }
 
         const std::string completion =
-                runCompletion(session, prompt_str, maxTokens, progress_callback);
+                runCompletion(session, prompt_str, options, progress_callback);
         return env->NewStringUTF(completion.c_str());
     } catch (const std::exception& ex) {
-        __android_log_print(ANDROID_LOG_ERROR, kTag, "nativeCompletion gagal: %s", ex.what());
+        __android_log_print(ANDROID_LOG_ERROR, kTag, "nativeCompletionWithOptions gagal: %s", ex.what());
         throwJavaException(env, "java/lang/IllegalStateException", ex.what());
         return nullptr;
     }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletion(
+        JNIEnv* env,
+        jobject thiz,
+        jlong handle,
+        jstring prompt,
+        jint maxTokens,
+        jobject listener) {
+    const jfloat nan = std::numeric_limits<float>::quiet_NaN();
+    return Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletionWithOptions(
+            env,
+            thiz,
+            handle,
+            prompt,
+            maxTokens,
+            nan,
+            nan,
+            -1,
+            nan,
+            -1,
+            nan,
+            nan,
+            nullptr,
+            -1,
+            listener);
 }
 
 extern "C" JNIEXPORT void JNICALL
