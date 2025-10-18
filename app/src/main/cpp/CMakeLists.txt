@@ -37,6 +37,28 @@ else()
         "Ninja executable used for Vulkan shader generation" FORCE)
     set(Ninja_EXECUTABLE "${CICERO_NINJA_EXECUTABLE}" CACHE FILEPATH
         "Ninja executable used for Vulkan shader generation" FORCE)
+
+    # Ensure the directory that contains the Ninja executable is visible to
+    # downstream configure steps that run in a fresh CMake process.  Without
+    # this, the shader code generator invoked from llama.cpp fails to locate
+    # the build tool on Windows where the Android Studio bundled ninja is not
+    # on the global PATH.
+    get_filename_component(_cicero_ninja_dir "${CICERO_NINJA_EXECUTABLE}" DIRECTORY)
+    if (_cicero_ninja_dir)
+        list(APPEND CMAKE_PROGRAM_PATH "${_cicero_ninja_dir}")
+        list(REMOVE_DUPLICATES CMAKE_PROGRAM_PATH)
+        set(CMAKE_PROGRAM_PATH "${CMAKE_PROGRAM_PATH}" CACHE STRING
+            "Program search path containing Ninja" FORCE)
+
+        string(FIND "$ENV{PATH}" "${_cicero_ninja_dir}" _cicero_path_index)
+        if (_cicero_path_index EQUAL -1)
+            if (WIN32)
+                set(ENV{PATH} "${_cicero_ninja_dir};$ENV{PATH}")
+            else()
+                set(ENV{PATH} "${_cicero_ninja_dir}:$ENV{PATH}")
+            endif()
+        endif()
+    endif()
 endif()
 
 set(GGML_VULKAN ${CICERO_ENABLE_VULKAN} CACHE BOOL "" FORCE)
