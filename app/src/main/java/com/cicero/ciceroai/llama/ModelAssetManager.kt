@@ -10,20 +10,35 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import kotlin.io.DEFAULT_BUFFER_SIZE
 
-class ModelAssetManager(private val context: Context) {
+class ModelAssetManager(
+    private val context: Context,
+    timeoutConfig: TimeoutConfig = TimeoutConfig()
+) {
     private val dispatcher = Dispatchers.IO
     private val httpClient = OkHttpClient.Builder()
         .retryOnConnectionFailure(true)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(2, TimeUnit.MINUTES)
-        .writeTimeout(2, TimeUnit.MINUTES)
+        .connectTimeout(timeoutConfig.connectTimeoutSeconds, TimeUnit.SECONDS)
+        .readTimeout(timeoutConfig.readTimeoutMinutes, TimeUnit.MINUTES)
+        .writeTimeout(timeoutConfig.writeTimeoutMinutes, TimeUnit.MINUTES)
+        .callTimeout(timeoutConfig.callTimeoutMinutes, TimeUnit.MINUTES)
         .build()
 
     companion object {
         private const val MAX_DOWNLOAD_ATTEMPTS = 3
         private const val USER_AGENT = "CiceroAI-ModelDownloader/1.0"
         private const val ACCEPT_HEADER = "application/octet-stream, */*"
+        private const val DEFAULT_CONNECT_TIMEOUT_SECONDS = 30L
+        private const val DEFAULT_READ_TIMEOUT_MINUTES = 15L
+        private const val DEFAULT_WRITE_TIMEOUT_MINUTES = 15L
+        private const val DEFAULT_CALL_TIMEOUT_MINUTES = 20L
     }
+
+    data class TimeoutConfig(
+        val connectTimeoutSeconds: Long = DEFAULT_CONNECT_TIMEOUT_SECONDS,
+        val readTimeoutMinutes: Long = DEFAULT_READ_TIMEOUT_MINUTES,
+        val writeTimeoutMinutes: Long = DEFAULT_WRITE_TIMEOUT_MINUTES,
+        val callTimeoutMinutes: Long = DEFAULT_CALL_TIMEOUT_MINUTES
+    )
 
     suspend fun copyModelIfNeeded(assetName: String): File = withContext(dispatcher) {
         val targetDir = File(context.filesDir, "models").apply { mkdirs() }
