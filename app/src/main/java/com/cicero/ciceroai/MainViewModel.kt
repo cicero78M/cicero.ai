@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.cicero.ciceroai.llama.LlamaController
 import java.io.File
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -100,6 +101,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update { state ->
                     state.copy(outputText = result)
                 }
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
                 appendLog(context.getString(R.string.log_inference_error, message))
@@ -212,6 +215,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 refreshDownloadedModels()
                 prepareModel(modelFile)
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
                 _uiState.update { state ->
@@ -304,6 +309,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         outputText = context.getString(R.string.inference_placeholder)
                     )
                 }
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
                 _uiState.update { state ->
