@@ -1,12 +1,12 @@
 package com.cicero.ciceroai
 
+import com.cicero.ciceroai.settings.PresetOption
+
 enum class MainPage {
     HOME,
     DOWNLOAD,
     SETTINGS
 }
-
-import com.cicero.ciceroai.settings.PresetOption
 
 data class MainUiState(
     val currentPage: MainPage,
