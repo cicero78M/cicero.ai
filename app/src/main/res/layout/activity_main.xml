@@ -114,36 +114,47 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/promptInputLayout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/promptCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="@string/prompt_hint"
-                    app:boxCornerRadiusBottomEnd="24dp"
-                    app:boxCornerRadiusBottomStart="24dp"
-                    app:boxCornerRadiusTopEnd="24dp"
-                    app:boxCornerRadiusTopStart="24dp"
-                    app:endIconMode="clear_text">
+                    android:padding="12dp"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="24dp"
+                    app:strokeColor="?android:attr/textColorSecondary"
+                    app:strokeWidth="1dp">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/promptInput"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/promptInputLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@android:color/transparent"
-                        android:gravity="top|start"
-                        android:importantForAutofill="yes"
-                        android:inputType="textMultiLine"
-                        android:maxLines="6"
-                        android:minLines="1"
-                        android:overScrollMode="ifContentScrolls"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:imeOptions="actionSend"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                        android:autofillHints="@string/prompt_autofill_hint" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:hint="@string/prompt_hint"
+                        app:boxBackgroundColor="@android:color/transparent"
+                        app:boxBackgroundMode="outline"
+                        app:endIconMode="clear_text">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/promptInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints="@string/prompt_autofill_hint"
+                            android:background="@android:color/transparent"
+                            android:gravity="top|start"
+                            android:imeOptions="actionSend"
+                            android:importantForAutofill="yes"
+                            android:inputType="textMultiLine"
+                            android:maxLines="6"
+                            android:minLines="1"
+                            android:overScrollMode="ifContentScrolls"
+                            android:paddingTop="12dp"
+                            android:paddingBottom="12dp"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                            android:textColorHint="@color/prompt_hint_grey" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/runButton"
