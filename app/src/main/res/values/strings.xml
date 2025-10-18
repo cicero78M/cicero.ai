@@ -4,6 +4,7 @@
     <string name="model_status_loading">Menyiapkan model %1$s…</string>
     <string name="model_status_download_prompt">Model belum tersedia. Pilih dari daftar standar atau masukkan tautan unduhan untuk memulai.</string>
     <string name="model_status_downloading">Mengunduh model…</string>
+    <string name="model_status_download_waiting_retry">Menunggu %1$s sebelum mencoba lagi…</string>
     <string name="model_status_download_success">Unduhan selesai: %1$s</string>
     <string name="model_status_download_failed">Gagal mengunduh model: %1$s</string>
     <string name="model_status_no_file">Model belum diunduh atau berkas hilang.</string>
@@ -18,6 +19,7 @@
     <string name="download_progress_data_placeholder">Menunggu mulai…</string>
     <string name="download_progress_data_with_total">%1$s dari %2$s</string>
     <string name="download_progress_data_without_total">%1$s diunduh</string>
+    <string name="download_retry_minutes_seconds">%1$s %2$s</string>
     <string name="log_section_title">Log Proses</string>
     <string name="log_placeholder">Belum ada log. Jalankan inferensi untuk melihat status terbaru.</string>
     <string name="log_inference_prompt_empty">Prompt kosong. Isi prompt terlebih dahulu sebelum menjalankan inferensi.</string>

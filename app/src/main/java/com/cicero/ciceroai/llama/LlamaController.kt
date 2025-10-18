@@ -73,8 +73,9 @@ class LlamaController(context: Context) {
     suspend fun downloadModel(
         url: String,
         fileName: String,
-        onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> }
-    ): File = assetManager.downloadModel(url, fileName, onProgress)
+        onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> },
+        onStatus: suspend (message: String) -> Unit = {}
+    ): File = assetManager.downloadModel(url, fileName, onProgress, onStatus)
 
     fun release() {
         session?.let {

@@ -1,10 +1,12 @@
 package com.cicero.ciceroai.llama
 
 import android.content.Context
+import com.cicero.ciceroai.R
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -31,6 +33,10 @@ class ModelAssetManager(
         private const val DEFAULT_READ_TIMEOUT_MINUTES = 15L
         private const val DEFAULT_WRITE_TIMEOUT_MINUTES = 15L
         private const val DEFAULT_CALL_TIMEOUT_MINUTES = 20L
+        private const val MAX_RETRY_AFTER_SECONDS = 600L
+        private const val INITIAL_BACKOFF_MILLIS = 1_000L
+        private const val MAX_BACKOFF_MILLIS = 60_000L
+        private val RETRYABLE_STATUS_CODES = setOf(408, 425, 429, 500, 502, 503, 504)
     }
 
     data class TimeoutConfig(
@@ -65,7 +71,8 @@ class ModelAssetManager(
     suspend fun downloadModel(
         url: String,
         fileName: String,
-        onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> }
+        onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> },
+        onStatus: suspend (message: String) -> Unit = {}
     ): File = withContext(dispatcher) {
         require(url.startsWith("http", ignoreCase = true)) {
             "URL harus menggunakan skema HTTP atau HTTPS"
@@ -76,7 +83,10 @@ class ModelAssetManager(
         val targetFile = File(modelsDir, safeName)
         val tempPrefix = safeName.substringBefore('.').takeIf { it.length >= 3 } ?: "model"
         var attempt = 0
+        var waitCount = 0
         var lastError: IOException? = null
+
+        onStatus(context.getString(R.string.model_status_downloading))
 
         while (attempt < MAX_DOWNLOAD_ATTEMPTS) {
             val tempFile = File.createTempFile(tempPrefix, ".download", modelsDir)
@@ -89,6 +99,27 @@ class ModelAssetManager(
 
                 httpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
+                        if (response.code in RETRYABLE_STATUS_CODES) {
+                            val retryAfterSeconds = parseRetryAfterSeconds(response.header("Retry-After"))
+                            val delayMillis = computeRetryDelayMillis(retryAfterSeconds, waitCount)
+                            waitCount++
+                            tempFile.delete()
+
+                            if (delayMillis > 0L) {
+                                val formattedDuration = formatDelayMessage(delayMillis)
+                                onStatus(
+                                    context.getString(
+                                        R.string.model_status_download_waiting_retry,
+                                        formattedDuration
+                                    )
+                                )
+                                delay(delayMillis)
+                                onStatus(context.getString(R.string.model_status_downloading))
+                            }
+
+                            continue
+                        }
+
                         throw IOException(
                             "Gagal mengunduh model. Kode respons: ${response.code}"
                         )
@@ -116,6 +147,7 @@ class ModelAssetManager(
                             }
                         }
                     }
+                    waitCount = 0
                 }
 
                 if (targetFile.exists()) {
@@ -132,6 +164,7 @@ class ModelAssetManager(
                 tempFile.delete()
                 lastError = error
                 attempt++
+                waitCount = 0
                 if (attempt >= MAX_DOWNLOAD_ATTEMPTS) {
                     throw error
                 }
@@ -139,5 +172,60 @@ class ModelAssetManager(
         }
 
         throw lastError ?: IOException("Unduhan gagal tanpa pengecualian yang diketahui")
+    }
+
+    private fun parseRetryAfterSeconds(headerValue: String?): Long? {
+        val trimmed = headerValue?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return trimmed.toLongOrNull()?.coerceAtLeast(0L)
+    }
+
+    private fun computeRetryDelayMillis(retryAfterSeconds: Long?, waitCount: Int): Long {
+        val fromHeader = retryAfterSeconds
+            ?.coerceAtMost(MAX_RETRY_AFTER_SECONDS)
+            ?.takeIf { it > 0L }
+        if (fromHeader != null) {
+            return TimeUnit.SECONDS.toMillis(fromHeader)
+        }
+
+        val exponent = waitCount.coerceAtMost(10)
+        val backoff = INITIAL_BACKOFF_MILLIS * (1L shl exponent)
+        return backoff.coerceAtMost(MAX_BACKOFF_MILLIS)
+    }
+
+    private fun formatDelayMessage(delayMillis: Long): String {
+        val totalSeconds = (delayMillis / 1000L).coerceAtLeast(1L)
+        val minutes = (totalSeconds / 60).toInt()
+        val seconds = (totalSeconds % 60).toInt()
+        return when {
+            minutes > 0 && seconds > 0 -> {
+                val minutesText = context.resources.getQuantityString(
+                    R.plurals.download_retry_minutes,
+                    minutes,
+                    minutes
+                )
+                val secondsText = context.resources.getQuantityString(
+                    R.plurals.download_retry_seconds,
+                    seconds,
+                    seconds
+                )
+                context.getString(
+                    R.string.download_retry_minutes_seconds,
+                    minutesText,
+                    secondsText
+                )
+            }
+
+            minutes > 0 -> context.resources.getQuantityString(
+                R.plurals.download_retry_minutes,
+                minutes,
+                minutes
+            )
+
+            else -> context.resources.getQuantityString(
+                R.plurals.download_retry_seconds,
+                seconds,
+                seconds
+            )
+        }
     }
 }
