@@ -17,7 +17,7 @@
     <string name="download_progress_with_total">Mengunduh %1$d%% (%2$s dari %3$s)</string>
     <string name="download_progress_without_total">Mengunduh %1$s</string>
     <string name="log_section_title">Log Proses</string>
-    <string name="log_placeholder">Ketuk tombol Jalankan untuk melihat proses inferensi.</string>
+    <string name="log_placeholder">Belum ada log. Jalankan inferensi untuk melihat status terbaru.</string>
     <string name="log_inference_prompt_empty">Prompt kosong. Isi prompt terlebih dahulu sebelum menjalankan inferensi.</string>
     <string name="log_inference_started">Memulai proses inferensi.</string>
     <string name="log_inference_preparing_prompt">Membersihkan dan menyiapkan prompt.</string>
@@ -42,7 +42,4 @@
     <string name="title_download">Download Model</string>
     <string name="title_settings">Setting</string>
     <string name="menu_navigation_content_description">Buka menu navigasi</string>
-    <string name="log_copy_content_description">Salin log</string>
-    <string name="log_clipboard_label">Log Cicero.AI</string>
-    <string name="log_copied_confirmation">Log berhasil disalin ke clipboard.</string>
 </resources>

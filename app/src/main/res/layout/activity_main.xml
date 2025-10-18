@@ -84,60 +84,20 @@
                             android:textColor="?android:attr/textColorPrimary" />
                     </com.google.android.material.card.MaterialCardView>
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/logCard"
+                    <TextView
+                        android:id="@+id/logTicker"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
-                        app:cardBackgroundColor="?attr/colorSurface"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="1dp"
-                        app:strokeColor="?android:attr/textColorSecondary"
-                        app:strokeWidth="1dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:id="@+id/logTitle"
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginEnd="12dp"
-                                    android:layout_weight="1"
-                                    android:text="@string/log_section_title"
-                                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                                    android:textColor="?android:attr/textColorPrimary" />
-
-                                <ImageButton
-                                    android:id="@+id/copyLogButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="?attr/selectableItemBackgroundBorderless"
-                                    android:contentDescription="@string/log_copy_content_description"
-                                    android:padding="4dp"
-                                    android:src="@drawable/ic_content_copy"
-                                    android:tint="?attr/colorPrimary" />
-                            </LinearLayout>
-
-                            <TextView
-                                android:id="@+id/logView"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/log_placeholder"
-                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                                android:textColor="?android:attr/textColorSecondary" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                        android:ellipsize="end"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="20dp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:singleLine="true"
+                        android:text="@string/log_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="?android:attr/textColorSecondary" />
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
 
