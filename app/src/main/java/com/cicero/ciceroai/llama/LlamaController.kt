@@ -77,6 +77,8 @@ class LlamaController(context: Context) {
         onStatus: suspend (message: String) -> Unit = {}
     ): File = assetManager.downloadModel(url, fileName, onProgress, onStatus)
 
+    fun isVulkanAvailable(): Boolean = LlamaBridge.isVulkanAvailable()
+
     fun release() {
         session?.let {
             LlamaBridge.nativeRelease(it.handle)

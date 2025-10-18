@@ -33,6 +33,10 @@ internal object LlamaBridge {
 
     external fun nativeRelease(handle: Long)
 
+    external fun nativeIsVulkanAvailable(): Boolean
+
+    fun isVulkanAvailable(): Boolean = nativeIsVulkanAvailable()
+
     fun interface CompletionListener {
         fun onToken(token: String)
     }

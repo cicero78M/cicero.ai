@@ -39,7 +39,8 @@ data class MainUiState(
     val nGpuLayers: Int,
     val batchSize: Int,
     val temperature: Float,
-    val topP: Float
+    val topP: Float,
+    val isVulkanAvailable: Boolean? = null
 )
 
 data class StandardModelInfo(

@@ -299,6 +299,23 @@ class MainActivity : AppCompatActivity() {
         updateSettingInput(binding.storageInput, storageSettingAdapter, state.storageSetting)
         updateSettingInput(binding.diagnosticsInput, diagnosticsSettingAdapter, state.diagnosticsSetting)
 
+        val vulkanStatus = state.isVulkanAvailable
+        if (vulkanStatus != null) {
+            val (statusTextRes, statusColorAttr) = if (vulkanStatus) {
+                R.string.settings_vulkan_status_on to AppCompatR.attr.colorPrimary
+            } else {
+                R.string.settings_vulkan_status_off to MaterialR.attr.colorError
+            }
+            binding.vulkanStatusTitle.isVisible = true
+            binding.vulkanStatusLabel.isVisible = true
+            binding.vulkanStatusLabel.text = getString(statusTextRes)
+            val statusColor = MaterialColors.getColor(binding.vulkanStatusLabel, statusColorAttr)
+            binding.vulkanStatusLabel.setTextColor(statusColor)
+        } else {
+            binding.vulkanStatusTitle.isVisible = false
+            binding.vulkanStatusLabel.isVisible = false
+        }
+
         if (!binding.contextSlider.isPressed) {
             binding.contextSlider.value = state.contextSize.toFloat()
         }
