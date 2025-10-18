@@ -88,7 +88,7 @@ class ModelAssetManager(
 
         onStatus(context.getString(R.string.model_status_downloading))
 
-        while (attempt < MAX_DOWNLOAD_ATTEMPTS) {
+        attemptLoop@ while (attempt < MAX_DOWNLOAD_ATTEMPTS) {
             val tempFile = File.createTempFile(tempPrefix, ".download", modelsDir)
             try {
                 val request = Request.Builder()
@@ -117,7 +117,7 @@ class ModelAssetManager(
                                 onStatus(context.getString(R.string.model_status_downloading))
                             }
 
-                            continue
+                            continue@attemptLoop
                         }
 
                         throw IOException(
