@@ -2,7 +2,7 @@ package com.cicero.ciceroai.settings
 
 data class SettingsConfig(
     val modelPath: String?,
-    val preset: String,
+    val preset: PresetOption,
     val model: String,
     val runtime: String,
     val sampling: String,
