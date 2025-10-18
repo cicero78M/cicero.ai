@@ -115,6 +115,10 @@
     <string name="settings_batch_value">%1$d</string>
     <string name="settings_temperature_value">%.2f</string>
     <string name="settings_top_p_value">%.2f</string>
+    <string name="settings_vulkan_status_title">Dukungan Vulkan</string>
+    <string name="settings_vulkan_status_placeholder">Memeriksa status Vulkan…</string>
+    <string name="settings_vulkan_status_on">Vulkan aktif dan siap digunakan.</string>
+    <string name="settings_vulkan_status_off">Vulkan tidak tersedia pada perangkat ini.</string>
     <string name="menu_home">Halaman Utama</string>
     <string name="menu_download">Download Model</string>
     <string name="menu_settings">Setting</string>

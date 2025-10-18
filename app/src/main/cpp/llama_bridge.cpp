@@ -2,6 +2,9 @@
 #include <android/log.h>
 
 #include "llama.h"
+#if defined(GGML_USE_VULKAN)
+#include "ggml-vulkan.h"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -792,6 +795,25 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeInit(
         throwJavaException(env, "java/lang/IllegalStateException", ex.what());
         return 0;
     }
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_cicero_ciceroai_llama_LlamaBridge_nativeIsVulkanAvailable(
+        JNIEnv* env,
+        jobject /* thiz */) {
+#if defined(GGML_USE_VULKAN)
+    (void) env;
+    retainBackend();
+    struct BackendGuard {
+        ~BackendGuard() { releaseBackend(); }
+    };
+    [[maybe_unused]] BackendGuard guard;
+    const bool available = ggml_backend_vk_get_device_count() > 0;
+    return available ? JNI_TRUE : JNI_FALSE;
+#else
+    (void) env;
+    return JNI_FALSE;
+#endif
 }
 
 extern "C" JNIEXPORT jlong JNICALL

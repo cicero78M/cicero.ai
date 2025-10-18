@@ -233,7 +233,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             nGpuLayers = latestSettingsConfig.nGpuLayers,
             batchSize = latestSettingsConfig.batchSize,
             temperature = latestSettingsConfig.temperature,
-            topP = latestSettingsConfig.topP
+            topP = latestSettingsConfig.topP,
+            isVulkanAvailable = controller.isVulkanAvailable()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
