@@ -116,8 +116,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context: Application
         get() = getApplication()
 
-    private val defaultEngineName = context.getString(R.string.settings_engine_default)
-    private val defaultPromptTemplate = context.getString(R.string.settings_prompt_default)
+    private val defaultPresetSetting = context.getString(R.string.settings_preset_default)
+    private val defaultModelSetting = context.getString(R.string.settings_model_default)
+    private val defaultRuntimeSetting = context.getString(R.string.settings_runtime_default)
+    private val defaultSamplingSetting = context.getString(R.string.settings_sampling_default)
+    private val defaultPromptPersonaSetting = context.getString(R.string.settings_prompt_persona_default)
+    private val defaultMemorySetting = context.getString(R.string.settings_memory_default)
+    private val defaultCodingWorkspaceSetting = context.getString(R.string.settings_coding_workspace_default)
+    private val defaultPrivacySetting = context.getString(R.string.settings_privacy_default)
+    private val defaultStorageSetting = context.getString(R.string.settings_storage_default)
+    private val defaultDiagnosticsSetting = context.getString(R.string.settings_diagnostics_default)
 
     private val _uiState = MutableStateFlow(
         MainUiState(
@@ -137,8 +145,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedModelName = loadSavedModelName(),
             standardModels = standardModelOptions,
             selectedStandardModelIndex = 0,
-            engineSetting = loadEngineSetting(),
-            promptTemplateSetting = loadPromptTemplate()
+            presetSetting = loadPresetSetting(),
+            modelSetting = loadModelSetting(),
+            runtimeSetting = loadRuntimeSetting(),
+            samplingSetting = loadSamplingSetting(),
+            promptPersonaSetting = loadPromptPersonaSetting(),
+            memorySetting = loadMemorySetting(),
+            codingWorkspaceSetting = loadCodingWorkspaceSetting(),
+            privacySetting = loadPrivacySetting(),
+            storageSetting = loadStorageSetting(),
+            diagnosticsSetting = loadDiagnosticsSetting()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -305,22 +321,71 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { state -> state.copy(currentPage = MainPage.SETTINGS) }
     }
 
-    fun onEngineSettingChanged(value: String) {
-        preferences.edit()
-            .putString(KEY_ENGINE_NAME, value)
-            .apply()
-        _uiState.update { state ->
-            if (state.engineSetting == value) state else state.copy(engineSetting = value)
+    fun onPresetSettingChanged(value: String) {
+        persistSetting(KEY_PRESET_SETTING, value) { state ->
+            if (state.presetSetting == value) state else state.copy(presetSetting = value)
         }
     }
 
-    fun onPromptTemplateChanged(value: String) {
-        preferences.edit()
-            .putString(KEY_PROMPT_TEMPLATE, value)
-            .apply()
-        _uiState.update { state ->
-            if (state.promptTemplateSetting == value) state else state.copy(promptTemplateSetting = value)
+    fun onModelSettingChanged(value: String) {
+        persistSetting(KEY_MODEL_SETTING, value) { state ->
+            if (state.modelSetting == value) state else state.copy(modelSetting = value)
         }
+    }
+
+    fun onRuntimeSettingChanged(value: String) {
+        persistSetting(KEY_RUNTIME_SETTING, value) { state ->
+            if (state.runtimeSetting == value) state else state.copy(runtimeSetting = value)
+        }
+    }
+
+    fun onSamplingSettingChanged(value: String) {
+        persistSetting(KEY_SAMPLING_SETTING, value) { state ->
+            if (state.samplingSetting == value) state else state.copy(samplingSetting = value)
+        }
+    }
+
+    fun onPromptPersonaSettingChanged(value: String) {
+        persistSetting(KEY_PROMPT_PERSONA_SETTING, value) { state ->
+            if (state.promptPersonaSetting == value) state else state.copy(promptPersonaSetting = value)
+        }
+    }
+
+    fun onMemorySettingChanged(value: String) {
+        persistSetting(KEY_MEMORY_SETTING, value) { state ->
+            if (state.memorySetting == value) state else state.copy(memorySetting = value)
+        }
+    }
+
+    fun onCodingWorkspaceSettingChanged(value: String) {
+        persistSetting(KEY_CODING_WORKSPACE_SETTING, value) { state ->
+            if (state.codingWorkspaceSetting == value) state else state.copy(codingWorkspaceSetting = value)
+        }
+    }
+
+    fun onPrivacySettingChanged(value: String) {
+        persistSetting(KEY_PRIVACY_SETTING, value) { state ->
+            if (state.privacySetting == value) state else state.copy(privacySetting = value)
+        }
+    }
+
+    fun onStorageSettingChanged(value: String) {
+        persistSetting(KEY_STORAGE_SETTING, value) { state ->
+            if (state.storageSetting == value) state else state.copy(storageSetting = value)
+        }
+    }
+
+    fun onDiagnosticsSettingChanged(value: String) {
+        persistSetting(KEY_DIAGNOSTICS_SETTING, value) { state ->
+            if (state.diagnosticsSetting == value) state else state.copy(diagnosticsSetting = value)
+        }
+    }
+
+    private fun persistSetting(key: String, value: String, reducer: (MainUiState) -> MainUiState) {
+        preferences.edit()
+            .putString(key, value)
+            .apply()
+        _uiState.update(reducer)
     }
 
     private fun startDownload(url: String) {
@@ -524,11 +589,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun loadEngineSetting(): String =
-        preferences.getString(KEY_ENGINE_NAME, defaultEngineName) ?: defaultEngineName
+    private fun loadPresetSetting(): String = loadSetting(KEY_PRESET_SETTING, defaultPresetSetting)
 
-    private fun loadPromptTemplate(): String =
-        preferences.getString(KEY_PROMPT_TEMPLATE, defaultPromptTemplate) ?: defaultPromptTemplate
+    private fun loadModelSetting(): String = loadSetting(KEY_MODEL_SETTING, defaultModelSetting)
+
+    private fun loadRuntimeSetting(): String = loadSetting(KEY_RUNTIME_SETTING, defaultRuntimeSetting)
+
+    private fun loadSamplingSetting(): String = loadSetting(KEY_SAMPLING_SETTING, defaultSamplingSetting)
+
+    private fun loadPromptPersonaSetting(): String =
+        loadSetting(KEY_PROMPT_PERSONA_SETTING, defaultPromptPersonaSetting)
+
+    private fun loadMemorySetting(): String = loadSetting(KEY_MEMORY_SETTING, defaultMemorySetting)
+
+    private fun loadCodingWorkspaceSetting(): String =
+        loadSetting(KEY_CODING_WORKSPACE_SETTING, defaultCodingWorkspaceSetting)
+
+    private fun loadPrivacySetting(): String = loadSetting(KEY_PRIVACY_SETTING, defaultPrivacySetting)
+
+    private fun loadStorageSetting(): String = loadSetting(KEY_STORAGE_SETTING, defaultStorageSetting)
+
+    private fun loadDiagnosticsSetting(): String =
+        loadSetting(KEY_DIAGNOSTICS_SETTING, defaultDiagnosticsSetting)
+
+    private fun loadSetting(key: String, defaultValue: String): String =
+        preferences.getString(key, defaultValue) ?: defaultValue
 
     private fun resolveFileName(url: String): String {
         val lastSegment = Uri.parse(url).lastPathSegment?.takeIf { it.isNotBlank() }
@@ -547,8 +632,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val PREF_NAME = "cicero_model_storage"
         private const val KEY_MODEL_PATH = "model_path"
-        private const val KEY_ENGINE_NAME = "engine_name"
-        private const val KEY_PROMPT_TEMPLATE = "prompt_template"
+        private const val KEY_PRESET_SETTING = "preset_setting"
+        private const val KEY_MODEL_SETTING = "model_setting"
+        private const val KEY_RUNTIME_SETTING = "runtime_setting"
+        private const val KEY_SAMPLING_SETTING = "sampling_setting"
+        private const val KEY_PROMPT_PERSONA_SETTING = "prompt_persona_setting"
+        private const val KEY_MEMORY_SETTING = "memory_setting"
+        private const val KEY_CODING_WORKSPACE_SETTING = "coding_workspace_setting"
+        private const val KEY_PRIVACY_SETTING = "privacy_setting"
+        private const val KEY_STORAGE_SETTING = "storage_setting"
+        private const val KEY_DIAGNOSTICS_SETTING = "diagnostics_setting"
         private const val MODEL_URL = "https://huggingface.co/TheBloke/deepseek-coder-1.3b-instruct-GGUF/resolve/main/deepseek-coder-1.3b-instruct.Q4_K_M.gguf"
     }
 }
