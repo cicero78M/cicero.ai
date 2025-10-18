@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -57,6 +58,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val savedModel = loadSavedModelFile()
         if (savedModel != null) {
             prepareModel(savedModel)
+        }
+        viewModelScope.launch {
+            controller.inferenceProgress.collect { token ->
+                val printableToken = token.replace("\n", "\\n")
+                appendLog(context.getString(R.string.log_inference_progress, printableToken))
+            }
         }
     }
 

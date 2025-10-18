@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -148,7 +149,10 @@ std::vector<llama_token> tokenizePrompt(const llama_model* model, const std::str
     return tokens;
 }
 
-std::string runCompletion(LlamaSession* session, const std::string& prompt, int max_tokens) {
+std::string runCompletion(LlamaSession* session,
+                          const std::string& prompt,
+                          int max_tokens,
+                          const std::function<void(const std::string&)>& on_token) {
     if (!session || !session->model || !session->context) {
         throw std::runtime_error("Session belum siap digunakan.");
     }
@@ -266,7 +270,12 @@ std::string runCompletion(LlamaSession* session, const std::string& prompt, int 
         }
 
         llama_sampler_accept(sampler, next);
-        completion += tokenToString(vocab, next);
+        const std::string token_text = tokenToString(vocab, next);
+        completion += token_text;
+
+        if (on_token) {
+            on_token(token_text);
+        }
 
         evaluate_tokens(&next, 1);
     }
@@ -341,7 +350,8 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletion(
         jobject /* thiz */,
         jlong handle,
         jstring prompt,
-        jint maxTokens) {
+        jint maxTokens,
+        jobject listener) {
     auto* session = fromHandle(handle);
     try {
         if (!session) {
@@ -350,7 +360,43 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeCompletion(
 
         JniString prompt_utf(env, prompt);
         const std::string prompt_str = prompt_utf.get() ? prompt_utf.get() : "";
-        const std::string completion = runCompletion(session, prompt_str, maxTokens);
+        std::function<void(const std::string&)> progress_callback;
+        if (listener) {
+            jclass listener_class = env->GetObjectClass(listener);
+            if (!listener_class) {
+                throw std::runtime_error("Listener progres tidak valid.");
+            }
+
+            jmethodID on_token_method = env->GetMethodID(
+                    listener_class, "onTokenGenerated", "(Ljava/lang/String;)V");
+            env->DeleteLocalRef(listener_class);
+            if (!on_token_method) {
+                if (env->ExceptionCheck()) {
+                    env->ExceptionClear();
+                }
+                throw std::runtime_error(
+                        "Metode onTokenGenerated tidak ditemukan pada listener progres.");
+            }
+
+            progress_callback = [env, listener, on_token_method](const std::string& token_text) {
+                jstring token_string = env->NewStringUTF(token_text.c_str());
+                if (!token_string) {
+                    throw std::runtime_error(
+                            "Gagal membuat representasi string untuk token yang dihasilkan.");
+                }
+
+                env->CallVoidMethod(listener, on_token_method, token_string);
+                env->DeleteLocalRef(token_string);
+
+                if (env->ExceptionCheck()) {
+                    env->ExceptionClear();
+                    throw std::runtime_error("Listener progres melempar pengecualian.");
+                }
+            };
+        }
+
+        const std::string completion =
+                runCompletion(session, prompt_str, maxTokens, progress_callback);
         return env->NewStringUTF(completion.c_str());
     } catch (const std::exception& ex) {
         __android_log_print(ANDROID_LOG_ERROR, kTag, "nativeCompletion gagal: %s", ex.what());
