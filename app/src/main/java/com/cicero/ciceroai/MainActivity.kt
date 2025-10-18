@@ -19,6 +19,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.core.widget.TextViewCompat
 import com.cicero.ciceroai.R
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.R as MaterialR
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -301,7 +302,7 @@ class MainActivity : AppCompatActivity() {
             this.layoutParams = layoutParams
             radius = resources.getDimension(R.dimen.downloaded_model_card_radius)
             strokeWidth = if (isSelected) resources.getDimensionPixelSize(R.dimen.downloaded_model_card_stroke) else 0
-            strokeColor = MaterialColors.getColor(binding.root, R.attr.colorPrimary)
+            strokeColor = MaterialColors.getColor(binding.root, MaterialR.attr.colorPrimary)
             setContentPadding(padding, padding, padding, padding)
             isClickable = true
             isFocusable = true
@@ -314,12 +315,12 @@ class MainActivity : AppCompatActivity() {
 
         val title = TextView(context).apply {
             text = modelName
-            TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_MaterialComponents_Subtitle1)
+            TextViewCompat.setTextAppearance(this, MaterialR.style.TextAppearance_MaterialComponents_Subtitle1)
         }
 
         val subtitle = TextView(context).apply {
             text = if (isSelected) getString(R.string.downloaded_model_active) else getString(R.string.downloaded_model_select)
-            TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_MaterialComponents_Body2)
+            TextViewCompat.setTextAppearance(this, MaterialR.style.TextAppearance_MaterialComponents_Body2)
         }
 
         container.addView(title)
