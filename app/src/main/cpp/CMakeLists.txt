@@ -16,8 +16,9 @@ set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER_GUI OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
+set(GGML_VULKAN ON CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     llama_cpp
@@ -39,11 +40,21 @@ find_library(
     log
 )
 
+find_library(
+    vulkan_lib
+    vulkan
+)
+
+if (NOT vulkan_lib)
+    message(FATAL_ERROR "Failed to locate the Vulkan loader library")
+endif()
+
 target_link_libraries(
     cicero_llama
     PRIVATE
     llama
     ${log-lib}
+    ${vulkan_lib}
 )
 
 target_include_directories(
