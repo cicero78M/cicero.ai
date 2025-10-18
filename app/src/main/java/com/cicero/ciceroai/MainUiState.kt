@@ -23,8 +23,16 @@ data class MainUiState(
     val selectedModelName: String?,
     val standardModels: List<StandardModelInfo>,
     val selectedStandardModelIndex: Int,
-    val engineSetting: String,
-    val promptTemplateSetting: String
+    val presetSetting: String,
+    val modelSetting: String,
+    val runtimeSetting: String,
+    val samplingSetting: String,
+    val promptPersonaSetting: String,
+    val memorySetting: String,
+    val codingWorkspaceSetting: String,
+    val privacySetting: String,
+    val storageSetting: String,
+    val diagnosticsSetting: String
 )
 
 data class StandardModelInfo(

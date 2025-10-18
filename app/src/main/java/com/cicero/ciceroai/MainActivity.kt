@@ -25,8 +25,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.cicero.ciceroai.databinding.ActivityMainBinding
-import com.google.android.material.chip.Chip
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.chip.Chip
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -120,12 +121,44 @@ class MainActivity : AppCompatActivity() {
             viewModel.onPromptTextChanged()
         }
 
-        binding.engineInput.doAfterTextChanged { text ->
-            viewModel.onEngineSettingChanged(text?.toString().orEmpty())
+        binding.presetInput.doAfterTextChanged { text ->
+            viewModel.onPresetSettingChanged(text?.toString().orEmpty())
         }
 
-        binding.promptTemplateInput.doAfterTextChanged { text ->
-            viewModel.onPromptTemplateChanged(text?.toString().orEmpty())
+        binding.modelSettingInput.doAfterTextChanged { text ->
+            viewModel.onModelSettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.runtimeInput.doAfterTextChanged { text ->
+            viewModel.onRuntimeSettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.samplingInput.doAfterTextChanged { text ->
+            viewModel.onSamplingSettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.promptPersonaInput.doAfterTextChanged { text ->
+            viewModel.onPromptPersonaSettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.memoryInput.doAfterTextChanged { text ->
+            viewModel.onMemorySettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.codingWorkspaceInput.doAfterTextChanged { text ->
+            viewModel.onCodingWorkspaceSettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.privacyInput.doAfterTextChanged { text ->
+            viewModel.onPrivacySettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.storageInput.doAfterTextChanged { text ->
+            viewModel.onStorageSettingChanged(text?.toString().orEmpty())
+        }
+
+        binding.diagnosticsInput.doAfterTextChanged { text ->
+            viewModel.onDiagnosticsSettingChanged(text?.toString().orEmpty())
         }
 
         lifecycleScope.launch {
@@ -173,21 +206,16 @@ class MainActivity : AppCompatActivity() {
         updateModelSpinner(state.downloadedModels, state.selectedModelName)
         updateDownloadedModels(state.downloadedModels, state.selectedModelName)
 
-        if (!binding.engineInput.isFocused) {
-            val currentEngine = binding.engineInput.text?.toString().orEmpty()
-            if (currentEngine != state.engineSetting) {
-                binding.engineInput.setText(state.engineSetting)
-                binding.engineInput.setSelection(binding.engineInput.text?.length ?: 0)
-            }
-        }
-
-        if (!binding.promptTemplateInput.isFocused) {
-            val currentTemplate = binding.promptTemplateInput.text?.toString().orEmpty()
-            if (currentTemplate != state.promptTemplateSetting) {
-                binding.promptTemplateInput.setText(state.promptTemplateSetting)
-                binding.promptTemplateInput.setSelection(binding.promptTemplateInput.text?.length ?: 0)
-            }
-        }
+        updateSettingInput(binding.presetInput, state.presetSetting)
+        updateSettingInput(binding.modelSettingInput, state.modelSetting)
+        updateSettingInput(binding.runtimeInput, state.runtimeSetting)
+        updateSettingInput(binding.samplingInput, state.samplingSetting)
+        updateSettingInput(binding.promptPersonaInput, state.promptPersonaSetting)
+        updateSettingInput(binding.memoryInput, state.memorySetting)
+        updateSettingInput(binding.codingWorkspaceInput, state.codingWorkspaceSetting)
+        updateSettingInput(binding.privacyInput, state.privacySetting)
+        updateSettingInput(binding.storageInput, state.storageSetting)
+        updateSettingInput(binding.diagnosticsInput, state.diagnosticsSetting)
     }
 
     private fun updateDownloadedModels(models: List<String>, selectedModel: String?) {
@@ -288,6 +316,17 @@ class MainActivity : AppCompatActivity() {
                 setOnClickListener { openLink(link.url) }
             }
             binding.standardModelLinks.addView(chip)
+        }
+    }
+
+    private fun updateSettingInput(input: TextInputEditText, value: String) {
+        if (input.isFocused) {
+            return
+        }
+        val currentValue = input.text?.toString().orEmpty()
+        if (currentValue != value) {
+            input.setText(value)
+            input.setSelection(input.text?.length ?: 0)
         }
     }
 
