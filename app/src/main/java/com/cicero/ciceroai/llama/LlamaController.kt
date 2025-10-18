@@ -3,6 +3,10 @@ package com.cicero.ciceroai.llama
 import android.content.Context
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 class LlamaController(context: Context) {
@@ -10,6 +14,13 @@ class LlamaController(context: Context) {
     private val assetManager = ModelAssetManager(appContext)
     private val dispatcher = Dispatchers.Default
     private var session: LlamaSession? = null
+    private val _inferenceProgress = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    val inferenceProgress: SharedFlow<String> = _inferenceProgress.asSharedFlow()
 
     suspend fun prepareSession(
         modelFile: File,
@@ -40,8 +51,15 @@ class LlamaController(context: Context) {
     }
 
     suspend fun runInference(prompt: String, maxTokens: Int): String = withContext(dispatcher) {
-        val currentSession = session ?: error("Model belum siap. Panggil prepareSession() terlebih dahulu.")
-        LlamaBridge.nativeCompletion(currentSession.handle, prompt, maxTokens)
+        val currentSession =
+            session ?: error("Model belum siap. Panggil prepareSession() terlebih dahulu.")
+        LlamaBridge.nativeCompletionWithProgress(
+            currentSession.handle,
+            prompt,
+            maxTokens
+        ) { token ->
+            _inferenceProgress.tryEmit(token)
+        }
     }
 
     suspend fun listBundledModels(): List<String> = assetManager.listBundledModels()

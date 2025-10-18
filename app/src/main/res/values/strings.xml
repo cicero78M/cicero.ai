@@ -22,6 +22,7 @@
     <string name="log_inference_started">Memulai proses inferensi.</string>
     <string name="log_inference_preparing_prompt">Membersihkan dan menyiapkan prompt.</string>
     <string name="log_inference_requesting_completion">Mengirim permintaan ke model (maksimum %1$d token).</string>
+    <string name="log_inference_progress">Token dihasilkan: "%1$s"</string>
     <string name="log_inference_success">Model selesai menghasilkan respons.</string>
     <string name="log_inference_error">Inferensi gagal: %1$s</string>
     <string name="downloaded_models_title">Model Terunduh</string>
