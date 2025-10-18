@@ -515,8 +515,17 @@
                                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
                                 android:layout_weight="1"
                                 android:text="@string/settings_preset_turbo" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/presetCustomButton"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_preset_custom" />
                         </com.google.android.material.button.MaterialButtonToggleGroup>
 
                         <TextView
@@ -527,6 +536,202 @@
                             android:text="@string/settings_preset_balanced_description"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                             android:textColor="?android:attr/textColorSecondary" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_medium"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="?android:attr/colorControlHighlight"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/spacing_medium">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_runtime_parameters_label"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_small"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_context_label"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+                            <TextView
+                                android:id="@+id/contextValueLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_context_value_placeholder"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                                android:textColor="?android:attr/textColorSecondary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/contextSlider"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:value="2048"
+                            android:valueFrom="512"
+                            android:valueTo="8192"
+                            app:labelBehavior="gone"
+                            app:stepSize="256" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_medium"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_gpu_layers_label"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+                            <TextView
+                                android:id="@+id/gpuLayersValueLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_gpu_layers_value_placeholder"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                                android:textColor="?android:attr/textColorSecondary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/gpuLayersSlider"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:value="2"
+                            android:valueFrom="0"
+                            android:valueTo="8"
+                            app:labelBehavior="gone"
+                            app:stepSize="1" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_medium"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_batch_label"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+                            <TextView
+                                android:id="@+id/batchValueLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_batch_value_placeholder"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                                android:textColor="?android:attr/textColorSecondary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/batchSlider"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:value="16"
+                            android:valueFrom="1"
+                            android:valueTo="64"
+                            app:labelBehavior="gone"
+                            app:stepSize="1" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_medium"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_temperature_label"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+                            <TextView
+                                android:id="@+id/temperatureValueLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_temperature_value_placeholder"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                                android:textColor="?android:attr/textColorSecondary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/temperatureSlider"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:value="0.7"
+                            android:valueFrom="0.1"
+                            android:valueTo="1.5"
+                            app:labelBehavior="gone"
+                            app:stepSize="0.05" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_medium"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_top_p_label"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+                            <TextView
+                                android:id="@+id/topPValueLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_top_p_value_placeholder"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                                android:textColor="?android:attr/textColorSecondary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/topPSlider"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:value="0.9"
+                            android:valueFrom="0.5"
+                            android:valueTo="1.0"
+                            app:labelBehavior="gone"
+                            app:stepSize="0.01" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -560,14 +765,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_model_hint">
+                            android:hint="@string/settings_model_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/modelSettingInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -603,14 +810,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_runtime_hint">
+                            android:hint="@string/settings_runtime_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/runtimeInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -646,14 +855,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_sampling_hint">
+                            android:hint="@string/settings_sampling_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/samplingInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -689,15 +900,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_prompt_persona_hint">
+                            android:hint="@string/settings_prompt_persona_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/promptPersonaInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:gravity="top|start"
-                                android:inputType="textMultiLine"
-                                android:minLines="3"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -733,14 +945,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_memory_hint">
+                            android:hint="@string/settings_memory_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/memoryInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -776,14 +990,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_coding_workspace_hint">
+                            android:hint="@string/settings_coding_workspace_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/codingWorkspaceInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -819,14 +1035,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_privacy_hint">
+                            android:hint="@string/settings_privacy_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/privacyInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -862,14 +1080,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_storage_hint">
+                            android:hint="@string/settings_storage_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/storageInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -905,14 +1125,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/spacing_small"
-                            android:hint="@string/settings_diagnostics_hint">
+                            android:hint="@string/settings_diagnostics_hint"
+                            app:endIconMode="dropdown_menu">
 
-                            <com.google.android.material.textfield.TextInputEditText
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/diagnosticsInput"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="1"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>

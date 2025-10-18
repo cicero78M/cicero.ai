@@ -11,5 +11,10 @@ data class SettingsConfig(
     val codingWorkspace: String,
     val privacy: String,
     val storage: String,
-    val diagnostics: String
+    val diagnostics: String,
+    val contextSize: Int,
+    val nGpuLayers: Int,
+    val batchSize: Int,
+    val temperature: Float,
+    val topP: Float
 )

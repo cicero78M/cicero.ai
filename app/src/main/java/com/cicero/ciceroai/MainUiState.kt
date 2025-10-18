@@ -34,7 +34,12 @@ data class MainUiState(
     val codingWorkspaceSetting: String,
     val privacySetting: String,
     val storageSetting: String,
-    val diagnosticsSetting: String
+    val diagnosticsSetting: String,
+    val contextSize: Int,
+    val nGpuLayers: Int,
+    val batchSize: Int,
+    val temperature: Float,
+    val topP: Float
 )
 
 data class StandardModelInfo(

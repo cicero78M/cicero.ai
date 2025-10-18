@@ -9,7 +9,8 @@ enum class PresetOption(
 ) {
     BATTERY_SAVER("battery_saver", R.string.settings_preset_battery_saver_description),
     BALANCED("balanced", R.string.settings_preset_balanced_description),
-    TURBO("turbo", R.string.settings_preset_turbo_description);
+    TURBO("turbo", R.string.settings_preset_turbo_description),
+    CUSTOM("custom", R.string.settings_preset_custom_description);
 
     companion object {
         fun fromId(value: String?): PresetOption {
@@ -22,6 +23,7 @@ enum class PresetOption(
                     "default", "balanced", "preset default" -> BALANCED
                     "battery", "battery saver", "hemat baterai" -> BATTERY_SAVER
                     "turbo", "pro" -> TURBO
+                    "custom" -> CUSTOM
                     else -> BALANCED
                 }
         }
@@ -37,5 +39,10 @@ data class PresetValues(
     val codingWorkspace: String,
     val privacy: String,
     val storage: String,
-    val diagnostics: String
+    val diagnostics: String,
+    val contextSize: Int,
+    val nGpuLayers: Int,
+    val batchSize: Int,
+    val temperature: Float,
+    val topP: Float
 )

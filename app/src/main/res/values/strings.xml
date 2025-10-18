@@ -47,9 +47,11 @@
     <string name="settings_preset_battery_saver">Battery Saver</string>
     <string name="settings_preset_balanced">Balanced</string>
     <string name="settings_preset_turbo">Turbo</string>
+    <string name="settings_preset_custom">Custom</string>
     <string name="settings_preset_battery_saver_description">Hemat daya untuk sesi ringan dan respons singkat.</string>
     <string name="settings_preset_balanced_description">Seimbangkan performa, kualitas, dan stabilitas harian.</string>
     <string name="settings_preset_turbo_description">Maksimalkan performa untuk tugas intensif dan sesi panjang.</string>
+    <string name="settings_preset_custom_description">Sesuaikan semua parameter secara manual.</string>
     <string name="settings_model_label">Model</string>
     <string name="settings_model_hint">Catatan model utama</string>
     <string name="settings_model_default">Gunakan model 3B quant Q4/Q5 untuk hasil stabil.</string>
@@ -95,6 +97,22 @@
     <string name="settings_diagnostics_default">Log dasar dengan ringkasan performa.</string>
     <string name="settings_diagnostics_battery_saver">Log hanya error penting.</string>
     <string name="settings_diagnostics_turbo">Log verbose &amp; profiling performa.</string>
+    <string name="settings_runtime_parameters_label">Parameter Runtime &amp; Sampling</string>
+    <string name="settings_context_label">Konteks (n_ctx)</string>
+    <string name="settings_gpu_layers_label">Lapisan GPU (n_gpu_layers)</string>
+    <string name="settings_batch_label">Ukuran Batch (n_batch)</string>
+    <string name="settings_temperature_label">Suhu (temperature)</string>
+    <string name="settings_top_p_label">Top-p</string>
+    <string name="settings_context_value_placeholder">2048 token</string>
+    <string name="settings_gpu_layers_value_placeholder">2 lapisan</string>
+    <string name="settings_batch_value_placeholder">16</string>
+    <string name="settings_temperature_value_placeholder">0.70</string>
+    <string name="settings_top_p_value_placeholder">0.90</string>
+    <string name="settings_context_value">%1$d token</string>
+    <string name="settings_gpu_layers_value">%1$d lapisan</string>
+    <string name="settings_batch_value">%1$d</string>
+    <string name="settings_temperature_value">%.2f</string>
+    <string name="settings_top_p_value">%.2f</string>
     <string name="menu_home">Halaman Utama</string>
     <string name="menu_download">Download Model</string>
     <string name="menu_settings">Setting</string>
@@ -102,4 +120,50 @@
     <string name="title_download">Download Model</string>
     <string name="title_settings">Setting</string>
     <string name="menu_navigation_content_description">Buka menu navigasi</string>
+
+    <string-array name="settings_model_options">
+        <item>@string/settings_model_default</item>
+        <item>@string/settings_model_battery_saver</item>
+        <item>@string/settings_model_turbo</item>
+    </string-array>
+    <string-array name="settings_runtime_options">
+        <item>@string/settings_runtime_default</item>
+        <item>@string/settings_runtime_battery_saver</item>
+        <item>@string/settings_runtime_turbo</item>
+    </string-array>
+    <string-array name="settings_sampling_options">
+        <item>@string/settings_sampling_default</item>
+        <item>@string/settings_sampling_battery_saver</item>
+        <item>@string/settings_sampling_turbo</item>
+    </string-array>
+    <string-array name="settings_prompt_persona_options">
+        <item>@string/settings_prompt_persona_default</item>
+        <item>@string/settings_prompt_persona_battery_saver</item>
+        <item>@string/settings_prompt_persona_turbo</item>
+    </string-array>
+    <string-array name="settings_memory_options">
+        <item>@string/settings_memory_default</item>
+        <item>@string/settings_memory_battery_saver</item>
+        <item>@string/settings_memory_turbo</item>
+    </string-array>
+    <string-array name="settings_coding_workspace_options">
+        <item>@string/settings_coding_workspace_default</item>
+        <item>@string/settings_coding_workspace_battery_saver</item>
+        <item>@string/settings_coding_workspace_turbo</item>
+    </string-array>
+    <string-array name="settings_privacy_options">
+        <item>@string/settings_privacy_default</item>
+        <item>@string/settings_privacy_battery_saver</item>
+        <item>@string/settings_privacy_turbo</item>
+    </string-array>
+    <string-array name="settings_storage_options">
+        <item>@string/settings_storage_default</item>
+        <item>@string/settings_storage_battery_saver</item>
+        <item>@string/settings_storage_turbo</item>
+    </string-array>
+    <string-array name="settings_diagnostics_options">
+        <item>@string/settings_diagnostics_default</item>
+        <item>@string/settings_diagnostics_battery_saver</item>
+        <item>@string/settings_diagnostics_turbo</item>
+    </string-array>
 </resources>

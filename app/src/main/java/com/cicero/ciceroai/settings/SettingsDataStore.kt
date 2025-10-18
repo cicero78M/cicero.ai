@@ -2,6 +2,8 @@ package com.cicero.ciceroai.settings
 
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 
@@ -19,4 +21,9 @@ object SettingsPreferencesKeys {
     val PRIVACY: Preferences.Key<String> = stringPreferencesKey("privacy_setting")
     val STORAGE: Preferences.Key<String> = stringPreferencesKey("storage_setting")
     val DIAGNOSTICS: Preferences.Key<String> = stringPreferencesKey("diagnostics_setting")
+    val CONTEXT_SIZE: Preferences.Key<Int> = intPreferencesKey("context_size")
+    val GPU_LAYERS: Preferences.Key<Int> = intPreferencesKey("gpu_layers")
+    val BATCH_SIZE: Preferences.Key<Int> = intPreferencesKey("batch_size")
+    val TEMPERATURE: Preferences.Key<Float> = floatPreferencesKey("temperature")
+    val TOP_P: Preferences.Key<Float> = floatPreferencesKey("top_p")
 }

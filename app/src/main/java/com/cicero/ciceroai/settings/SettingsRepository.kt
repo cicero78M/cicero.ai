@@ -47,7 +47,17 @@ class SettingsRepository(
             storage = preferences[SettingsPreferencesKeys.STORAGE]
                 ?: defaultConfig.storage,
             diagnostics = preferences[SettingsPreferencesKeys.DIAGNOSTICS]
-                ?: defaultConfig.diagnostics
+                ?: defaultConfig.diagnostics,
+            contextSize = preferences[SettingsPreferencesKeys.CONTEXT_SIZE]
+                ?: defaultConfig.contextSize,
+            nGpuLayers = preferences[SettingsPreferencesKeys.GPU_LAYERS]
+                ?: defaultConfig.nGpuLayers,
+            batchSize = preferences[SettingsPreferencesKeys.BATCH_SIZE]
+                ?: defaultConfig.batchSize,
+            temperature = preferences[SettingsPreferencesKeys.TEMPERATURE]
+                ?: defaultConfig.temperature,
+            topP = preferences[SettingsPreferencesKeys.TOP_P]
+                ?: defaultConfig.topP
         )
     }
 
@@ -81,6 +91,11 @@ class SettingsRepository(
             preferences[SettingsPreferencesKeys.PRIVACY] = values.privacy
             preferences[SettingsPreferencesKeys.STORAGE] = values.storage
             preferences[SettingsPreferencesKeys.DIAGNOSTICS] = values.diagnostics
+            preferences[SettingsPreferencesKeys.CONTEXT_SIZE] = values.contextSize
+            preferences[SettingsPreferencesKeys.GPU_LAYERS] = values.nGpuLayers
+            preferences[SettingsPreferencesKeys.BATCH_SIZE] = values.batchSize
+            preferences[SettingsPreferencesKeys.TEMPERATURE] = values.temperature
+            preferences[SettingsPreferencesKeys.TOP_P] = values.topP
         }
     }
 
@@ -120,7 +135,39 @@ class SettingsRepository(
         updatePreference(SettingsPreferencesKeys.DIAGNOSTICS, value)
     }
 
+    suspend fun updateContextSize(value: Int) {
+        updatePreference(SettingsPreferencesKeys.CONTEXT_SIZE, value)
+    }
+
+    suspend fun updateGpuLayers(value: Int) {
+        updatePreference(SettingsPreferencesKeys.GPU_LAYERS, value)
+    }
+
+    suspend fun updateBatchSize(value: Int) {
+        updatePreference(SettingsPreferencesKeys.BATCH_SIZE, value)
+    }
+
+    suspend fun updateTemperature(value: Float) {
+        updatePreference(SettingsPreferencesKeys.TEMPERATURE, value)
+    }
+
+    suspend fun updateTopP(value: Float) {
+        updatePreference(SettingsPreferencesKeys.TOP_P, value)
+    }
+
     private suspend fun updatePreference(key: Preferences.Key<String>, value: String) {
+        dataStore.edit { preferences ->
+            preferences[key] = value
+        }
+    }
+
+    private suspend fun updatePreference(key: Preferences.Key<Int>, value: Int) {
+        dataStore.edit { preferences ->
+            preferences[key] = value
+        }
+    }
+
+    private suspend fun updatePreference(key: Preferences.Key<Float>, value: Float) {
         dataStore.edit { preferences ->
             preferences[key] = value
         }
