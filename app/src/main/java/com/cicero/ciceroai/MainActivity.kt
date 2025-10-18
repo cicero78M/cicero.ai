@@ -304,7 +304,7 @@ class MainActivity : AppCompatActivity() {
             val (statusTextRes, statusColorAttr) = if (vulkanStatus) {
                 R.string.settings_vulkan_status_on to AppCompatR.attr.colorPrimary
             } else {
-                R.string.settings_vulkan_status_off to MaterialR.attr.colorError
+                R.string.settings_vulkan_status_off to AppCompatR.attr.colorError
             }
             binding.vulkanStatusTitle.isVisible = true
             binding.vulkanStatusLabel.isVisible = true
