@@ -22,6 +22,96 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val controller = LlamaController(application)
     private val preferences = application.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private val standardModelOptions = listOf(
+        StandardModelInfo(
+            name = "Llama-3.2-3B Instruct",
+            sizeLabel = "~2 GB (Q4) hingga ~3.4 GB (Q8)",
+            description = "Versi instruct dari Llama 3.2 dengan banyak varian quant yang cocok untuk perangkat Android.",
+            downloadUrl = "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf?download=true",
+            repositoryLinks = listOf(
+                RepositoryLink(
+                    label = "bartowski/Llama-3.2-3B-Instruct-GGUF",
+                    url = "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF"
+                ),
+                RepositoryLink(
+                    label = "hugging-quants/Llama-3.2-3B-Instruct-Q4_K_M-GGUF",
+                    url = "https://huggingface.co/hugging-quants/Llama-3.2-3B-Instruct-Q4_K_M-GGUF"
+                )
+            )
+        ),
+        StandardModelInfo(
+            name = "Llama-3.2-1B Instruct",
+            sizeLabel = "< 1 GB hingga ~1.3 GB tergantung quant",
+            description = "Varian Llama 3.2 yang lebih ringan untuk perangkat dengan resource terbatas.",
+            downloadUrl = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf?download=true",
+            repositoryLinks = listOf(
+                RepositoryLink(
+                    label = "bartowski/Llama-3.2-1B-Instruct-GGUF",
+                    url = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF"
+                )
+            )
+        ),
+        StandardModelInfo(
+            name = "Phi-3 Mini 4K Instruct",
+            sizeLabel = "~2–4 GB tergantung quant",
+            description = "Model ringan dengan kemampuan instruksi dan reasoning yang solid.",
+            downloadUrl = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf?download=true",
+            repositoryLinks = listOf(
+                RepositoryLink(
+                    label = "microsoft/Phi-3-mini-4k-instruct-gguf",
+                    url = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf"
+                ),
+                RepositoryLink(
+                    label = "LiteLLMs/Phi-3-mini-4k-instruct-GGUF",
+                    url = "https://huggingface.co/LiteLLMs/Phi-3-mini-4k-instruct-GGUF"
+                )
+            )
+        ),
+        StandardModelInfo(
+            name = "Phi-4 Mini Instruct",
+            sizeLabel = "~2–3 GB",
+            description = "Versi terbaru/eksperimental dari keluarga Phi dengan peningkatan kemampuan.",
+            downloadUrl = "https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF/resolve/main/Phi-4-mini-instruct-Q4_K_M.gguf?download=true",
+            repositoryLinks = listOf(
+                RepositoryLink(
+                    label = "unsloth/Phi-4-mini-instruct-GGUF",
+                    url = "https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF"
+                ),
+                RepositoryLink(
+                    label = "tensorblock/Phi-4-mini-instruct-GGUF",
+                    url = "https://huggingface.co/tensorblock/Phi-4-mini-instruct-GGUF"
+                ),
+                RepositoryLink(
+                    label = "lmstudio-community/Phi-4-mini-instruct-GGUF",
+                    url = "https://huggingface.co/lmstudio-community/Phi-4-mini-instruct-GGUF"
+                )
+            )
+        ),
+        StandardModelInfo(
+            name = "Dolphin3.0 Llama3.2-3B",
+            sizeLabel = "~2 GB (Q4) dengan varian lebih besar tersedia",
+            description = "Fine-tune dari Llama 3.2 untuk eksperimen alternatif bila varian utama kurang cocok.",
+            downloadUrl = "https://huggingface.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF/resolve/main/Dolphin3.0-Llama3.2-3B-Q4_K_M.gguf?download=true",
+            repositoryLinks = listOf(
+                RepositoryLink(
+                    label = "bartowski/Dolphin3.0-Llama3.2-3B-GGUF",
+                    url = "https://huggingface.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF"
+                )
+            )
+        ),
+        StandardModelInfo(
+            name = "Hermes-3 Llama3.2-3B",
+            sizeLabel = "~3B params",
+            description = "Varian Llama 3.2 dengan peningkatan reasoning dan kemampuan agen.",
+            downloadUrl = "https://huggingface.co/NousResearch/Hermes-3-Llama-3.2-3B-GGUF/resolve/main/Hermes-3-Llama-3.2-3B.Q4_K_M.gguf?download=true",
+            repositoryLinks = listOf(
+                RepositoryLink(
+                    label = "NousResearch/Hermes-3-Llama-3.2-3B-GGUF",
+                    url = "https://huggingface.co/NousResearch/Hermes-3-Llama-3.2-3B-GGUF"
+                )
+            )
+        )
+    )
 
     private val context: Application
         get() = getApplication()
@@ -36,7 +126,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             downloadProgressVisible = false,
             downloadProgressIndeterminate = true,
             downloadProgressValue = 0,
-            downloadProgressLabel = context.getString(R.string.download_progress_placeholder),
+            downloadProgressPercentText = context.getString(R.string.download_progress_percent_placeholder),
+            downloadProgressDataText = context.getString(R.string.download_progress_data_placeholder),
             isDownloadButtonEnabled = true,
             isRunButtonEnabled = false,
             promptError = null,
@@ -44,6 +135,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             logMessages = emptyList(),
             downloadedModels = emptyList(),
             selectedModelName = loadSavedModelName(),
+            standardModels = standardModelOptions,
+            selectedStandardModelIndex = 0,
             engineSetting = loadEngineSetting(),
             promptTemplateSetting = loadPromptTemplate()
         )
@@ -74,6 +167,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             startDownload(MODEL_URL)
         }
+    }
+
+    fun onStandardModelSelected(index: Int) {
+        if (standardModelOptions.isEmpty()) {
+            return
+        }
+        val safeIndex = index.coerceIn(0, standardModelOptions.lastIndex)
+        if (safeIndex == _uiState.value.selectedStandardModelIndex) {
+            return
+        }
+        _uiState.update { state -> state.copy(selectedStandardModelIndex = safeIndex) }
+    }
+
+    fun onStandardModelDownloadRequested() {
+        if (!_uiState.value.isDownloadButtonEnabled) {
+            return
+        }
+        if (standardModelOptions.isEmpty()) {
+            return
+        }
+        val safeIndex = _uiState.value.selectedStandardModelIndex.coerceIn(0, standardModelOptions.lastIndex)
+        val model = standardModelOptions.getOrNull(safeIndex) ?: return
+        startDownload(model.downloadUrl)
+    }
+
+    fun onManualDownloadRequested(url: String) {
+        if (!_uiState.value.isDownloadButtonEnabled) {
+            return
+        }
+        val sanitized = url.trim()
+        if (sanitized.isEmpty()) {
+            _uiState.update { state ->
+                state.copy(modelStatus = context.getString(R.string.model_status_manual_url_missing))
+            }
+            return
+        }
+        startDownload(sanitized)
     }
 
     fun runInference(prompt: String) {
@@ -206,7 +336,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     downloadProgressVisible = true,
                     downloadProgressIndeterminate = true,
                     downloadProgressValue = 0,
-                    downloadProgressLabel = context.getString(R.string.download_progress_placeholder)
+                    downloadProgressPercentText = context.getString(R.string.download_progress_percent_placeholder),
+                    downloadProgressDataText = context.getString(R.string.download_progress_data_placeholder)
                 )
             }
 
@@ -240,7 +371,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         downloadProgressVisible = false,
                         downloadProgressIndeterminate = true,
                         downloadProgressValue = 0,
-                        downloadProgressLabel = context.getString(R.string.download_progress_placeholder)
+                        downloadProgressPercentText = context.getString(R.string.download_progress_percent_placeholder),
+                        downloadProgressDataText = context.getString(R.string.download_progress_data_placeholder)
                     )
                 }
             }
@@ -248,7 +380,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun updateDownloadProgress(downloaded: Long, total: Long?) {
-        val progressLabel: String
+        val percentText: String
+        val dataText: String
         val progressValue: Int
         val isIndeterminate: Boolean
 
@@ -256,17 +389,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val progress = ((downloaded.toDouble() / total) * 100).coerceIn(0.0, 100.0)
             progressValue = progress.roundToInt()
             isIndeterminate = false
-            progressLabel = context.getString(
-                R.string.download_progress_with_total,
-                progressValue,
+            percentText = context.getString(R.string.download_progress_percent_value, progressValue)
+            dataText = context.getString(
+                R.string.download_progress_data_with_total,
                 formatFileSize(downloaded),
                 formatFileSize(total)
             )
         } else {
             progressValue = 0
             isIndeterminate = true
-            progressLabel = context.getString(
-                R.string.download_progress_without_total,
+            percentText = context.getString(R.string.download_progress_percent_placeholder)
+            dataText = context.getString(
+                R.string.download_progress_data_without_total,
                 formatFileSize(downloaded)
             )
         }
@@ -276,7 +410,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 downloadProgressVisible = true,
                 downloadProgressIndeterminate = isIndeterminate,
                 downloadProgressValue = progressValue,
-                downloadProgressLabel = progressLabel
+                downloadProgressPercentText = percentText,
+                downloadProgressDataText = dataText
             )
         }
     }
