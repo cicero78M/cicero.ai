@@ -299,7 +299,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="20dp"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.TitleMedium"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textStyle="bold" />
 
