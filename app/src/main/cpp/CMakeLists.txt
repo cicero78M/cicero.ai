@@ -47,13 +47,21 @@ if (NOT CICERO_NINJA_EXECUTABLE)
     message(WARNING "Ninja build tool not found; disabling GGML Vulkan backend")
     set(CICERO_ENABLE_VULKAN OFF)
 else()
+    set(_cicero_ninja_path "${CICERO_NINJA_EXECUTABLE}")
+    if (WIN32)
+        # Ensure the path is normalized for Windows hosts so downstream
+        # configure steps that run through cmd.exe do not encounter mixed
+        # separator issues when resolving the executable.
+        file(TO_NATIVE_PATH "${CICERO_NINJA_EXECUTABLE}" _cicero_ninja_path)
+    endif()
+
     # Propagate the Ninja path so nested CMake invocations (such as the
     # ggml/vulkan shader generator) can locate the executable even when it is
     # not present on the user's PATH – a common scenario on Windows Android
     # Studio installations.
-    set(CMAKE_MAKE_PROGRAM "${CICERO_NINJA_EXECUTABLE}" CACHE FILEPATH
+    set(CMAKE_MAKE_PROGRAM "${_cicero_ninja_path}" CACHE FILEPATH
         "Ninja executable used for Vulkan shader generation" FORCE)
-    set(Ninja_EXECUTABLE "${CICERO_NINJA_EXECUTABLE}" CACHE FILEPATH
+    set(Ninja_EXECUTABLE "${_cicero_ninja_path}" CACHE FILEPATH
         "Ninja executable used for Vulkan shader generation" FORCE)
 
     # Ensure the directory that contains the Ninja executable is visible to
@@ -61,22 +69,29 @@ else()
     # this, the shader code generator invoked from llama.cpp fails to locate
     # the build tool on Windows where the Android Studio bundled ninja is not
     # on the global PATH.
-    get_filename_component(_cicero_ninja_dir "${CICERO_NINJA_EXECUTABLE}" DIRECTORY)
+    get_filename_component(_cicero_ninja_dir "${_cicero_ninja_path}" DIRECTORY)
     if (_cicero_ninja_dir)
         list(APPEND CMAKE_PROGRAM_PATH "${_cicero_ninja_dir}")
         list(REMOVE_DUPLICATES CMAKE_PROGRAM_PATH)
         set(CMAKE_PROGRAM_PATH "${CMAKE_PROGRAM_PATH}" CACHE STRING
             "Program search path containing Ninja" FORCE)
 
-        string(FIND "$ENV{PATH}" "${_cicero_ninja_dir}" _cicero_path_index)
+        set(_cicero_env_ninja_dir "${_cicero_ninja_dir}")
+        if (WIN32)
+            file(TO_NATIVE_PATH "${_cicero_ninja_dir}" _cicero_env_ninja_dir)
+        endif()
+
+        string(FIND "$ENV{PATH}" "${_cicero_env_ninja_dir}" _cicero_path_index)
         if (_cicero_path_index EQUAL -1)
             if (WIN32)
-                set(ENV{PATH} "${_cicero_ninja_dir};$ENV{PATH}")
+                set(ENV{PATH} "${_cicero_env_ninja_dir};$ENV{PATH}")
             else()
-                set(ENV{PATH} "${_cicero_ninja_dir}:$ENV{PATH}")
+                set(ENV{PATH} "${_cicero_env_ninja_dir}:$ENV{PATH}")
             endif()
         endif()
     endif()
+    unset(_cicero_env_ninja_dir)
+    unset(_cicero_ninja_path)
 endif()
 
 set(GGML_VULKAN ${CICERO_ENABLE_VULKAN} CACHE BOOL "" FORCE)
