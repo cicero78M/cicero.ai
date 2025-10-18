@@ -19,10 +19,15 @@ class LlamaController(context: Context) {
         session
             ?.takeIf { it.modelFile.absolutePath == modelFile.absolutePath && it.modelFile.exists() }
             ?.let { return@withContext it }
-        session?.let { LlamaBridge.nativeRelease(it.handle) }
+        session?.let {
+            LlamaBridge.nativeRelease(it.handle)
+            session = null
+        }
 
         val handle = LlamaBridge.nativeInit(modelFile.absolutePath, threadCount, contextSize)
-        return@withContext LlamaSession(handle, modelFile).also { session = it }
+        val newSession = LlamaSession(handle, modelFile)
+        session = newSession
+        return@withContext newSession
     }
 
     suspend fun prepareSessionFromAsset(
