@@ -675,9 +675,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
-                val modelFile = controller.downloadModel(url, fileName) { downloaded, total ->
-                    updateDownloadProgress(downloaded, total)
-                }
+                val modelFile = controller.downloadModel(
+                    url,
+                    fileName,
+                    onProgress = { downloaded, total ->
+                        updateDownloadProgress(downloaded, total)
+                    },
+                    onStatus = { message ->
+                        _uiState.update { state ->
+                            state.copy(modelStatus = message)
+                        }
+                    }
+                )
                 saveModelReference(modelFile)
                 _uiState.update { state ->
                     state.copy(

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="download_retry_minutes">
+        <item quantity="one">%d menit</item>
+        <item quantity="other">%d menit</item>
+    </plurals>
+    <plurals name="download_retry_seconds">
+        <item quantity="one">%d detik</item>
+        <item quantity="other">%d detik</item>
+    </plurals>
+</resources>
