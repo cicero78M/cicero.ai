@@ -9,6 +9,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.ArrayRes
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
@@ -28,7 +29,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.cicero.ciceroai.databinding.ActivityMainBinding
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
-import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -41,10 +42,20 @@ class MainActivity : AppCompatActivity() {
     private val presetButtonIdToOption = mapOf(
         R.id.presetBatterySaverButton to PresetOption.BATTERY_SAVER,
         R.id.presetBalancedButton to PresetOption.BALANCED,
-        R.id.presetTurboButton to PresetOption.TURBO
+        R.id.presetTurboButton to PresetOption.TURBO,
+        R.id.presetCustomButton to PresetOption.CUSTOM
     )
     private val optionToPresetButtonId = presetButtonIdToOption.entries.associate { (id, preset) -> preset to id }
     private var suppressPresetSelection = false
+    private lateinit var modelSettingAdapter: ArrayAdapter<String>
+    private lateinit var runtimeSettingAdapter: ArrayAdapter<String>
+    private lateinit var samplingSettingAdapter: ArrayAdapter<String>
+    private lateinit var promptPersonaAdapter: ArrayAdapter<String>
+    private lateinit var memorySettingAdapter: ArrayAdapter<String>
+    private lateinit var codingWorkspaceAdapter: ArrayAdapter<String>
+    private lateinit var privacySettingAdapter: ArrayAdapter<String>
+    private lateinit var storageSettingAdapter: ArrayAdapter<String>
+    private lateinit var diagnosticsSettingAdapter: ArrayAdapter<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +63,95 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.topAppBar)
+
+        modelSettingAdapter = setupDropdown(
+            binding.modelSettingInput,
+            R.array.settings_model_options
+        ) { value ->
+            viewModel.onModelSettingChanged(value)
+        }
+        runtimeSettingAdapter = setupDropdown(
+            binding.runtimeInput,
+            R.array.settings_runtime_options
+        ) { value ->
+            viewModel.onRuntimeSettingChanged(value)
+        }
+        samplingSettingAdapter = setupDropdown(
+            binding.samplingInput,
+            R.array.settings_sampling_options
+        ) { value ->
+            viewModel.onSamplingSettingChanged(value)
+        }
+        promptPersonaAdapter = setupDropdown(
+            binding.promptPersonaInput,
+            R.array.settings_prompt_persona_options
+        ) { value ->
+            viewModel.onPromptPersonaSettingChanged(value)
+        }
+        memorySettingAdapter = setupDropdown(
+            binding.memoryInput,
+            R.array.settings_memory_options
+        ) { value ->
+            viewModel.onMemorySettingChanged(value)
+        }
+        codingWorkspaceAdapter = setupDropdown(
+            binding.codingWorkspaceInput,
+            R.array.settings_coding_workspace_options
+        ) { value ->
+            viewModel.onCodingWorkspaceSettingChanged(value)
+        }
+        privacySettingAdapter = setupDropdown(
+            binding.privacyInput,
+            R.array.settings_privacy_options
+        ) { value ->
+            viewModel.onPrivacySettingChanged(value)
+        }
+        storageSettingAdapter = setupDropdown(
+            binding.storageInput,
+            R.array.settings_storage_options
+        ) { value ->
+            viewModel.onStorageSettingChanged(value)
+        }
+        diagnosticsSettingAdapter = setupDropdown(
+            binding.diagnosticsInput,
+            R.array.settings_diagnostics_options
+        ) { value ->
+            viewModel.onDiagnosticsSettingChanged(value)
+        }
+
+        binding.contextSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val contextSize = value.toInt()
+                binding.contextValueLabel.text = getString(R.string.settings_context_value, contextSize)
+                viewModel.onContextSizeChanged(contextSize)
+            }
+        }
+        binding.gpuLayersSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val gpuLayers = value.toInt()
+                binding.gpuLayersValueLabel.text = getString(R.string.settings_gpu_layers_value, gpuLayers)
+                viewModel.onGpuLayersChanged(gpuLayers)
+            }
+        }
+        binding.batchSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val batchSize = value.toInt()
+                binding.batchValueLabel.text = getString(R.string.settings_batch_value, batchSize)
+                viewModel.onBatchSizeChanged(batchSize)
+            }
+        }
+        binding.temperatureSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.temperatureValueLabel.text = getString(R.string.settings_temperature_value, value)
+                viewModel.onTemperatureChanged(value)
+            }
+        }
+        binding.topPSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.topPValueLabel.text = getString(R.string.settings_top_p_value, value)
+                viewModel.onTopPChanged(value)
+            }
+        }
 
         modelSpinnerAdapter = ArrayAdapter<String>(
             this,
@@ -137,42 +237,6 @@ class MainActivity : AppCompatActivity() {
             viewModel.onPromptTextChanged()
         }
 
-        binding.modelSettingInput.doAfterTextChanged { text ->
-            viewModel.onModelSettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.runtimeInput.doAfterTextChanged { text ->
-            viewModel.onRuntimeSettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.samplingInput.doAfterTextChanged { text ->
-            viewModel.onSamplingSettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.promptPersonaInput.doAfterTextChanged { text ->
-            viewModel.onPromptPersonaSettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.memoryInput.doAfterTextChanged { text ->
-            viewModel.onMemorySettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.codingWorkspaceInput.doAfterTextChanged { text ->
-            viewModel.onCodingWorkspaceSettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.privacyInput.doAfterTextChanged { text ->
-            viewModel.onPrivacySettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.storageInput.doAfterTextChanged { text ->
-            viewModel.onStorageSettingChanged(text?.toString().orEmpty())
-        }
-
-        binding.diagnosticsInput.doAfterTextChanged { text ->
-            viewModel.onDiagnosticsSettingChanged(text?.toString().orEmpty())
-        }
-
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
@@ -225,15 +289,40 @@ class MainActivity : AppCompatActivity() {
             suppressPresetSelection = false
         }
         binding.presetDescription.text = getString(state.selectedPreset.descriptionRes)
-        updateSettingInput(binding.modelSettingInput, state.modelSetting)
-        updateSettingInput(binding.runtimeInput, state.runtimeSetting)
-        updateSettingInput(binding.samplingInput, state.samplingSetting)
-        updateSettingInput(binding.promptPersonaInput, state.promptPersonaSetting)
-        updateSettingInput(binding.memoryInput, state.memorySetting)
-        updateSettingInput(binding.codingWorkspaceInput, state.codingWorkspaceSetting)
-        updateSettingInput(binding.privacyInput, state.privacySetting)
-        updateSettingInput(binding.storageInput, state.storageSetting)
-        updateSettingInput(binding.diagnosticsInput, state.diagnosticsSetting)
+        updateSettingInput(binding.modelSettingInput, modelSettingAdapter, state.modelSetting)
+        updateSettingInput(binding.runtimeInput, runtimeSettingAdapter, state.runtimeSetting)
+        updateSettingInput(binding.samplingInput, samplingSettingAdapter, state.samplingSetting)
+        updateSettingInput(binding.promptPersonaInput, promptPersonaAdapter, state.promptPersonaSetting)
+        updateSettingInput(binding.memoryInput, memorySettingAdapter, state.memorySetting)
+        updateSettingInput(binding.codingWorkspaceInput, codingWorkspaceAdapter, state.codingWorkspaceSetting)
+        updateSettingInput(binding.privacyInput, privacySettingAdapter, state.privacySetting)
+        updateSettingInput(binding.storageInput, storageSettingAdapter, state.storageSetting)
+        updateSettingInput(binding.diagnosticsInput, diagnosticsSettingAdapter, state.diagnosticsSetting)
+
+        if (!binding.contextSlider.isPressed) {
+            binding.contextSlider.value = state.contextSize.toFloat()
+        }
+        binding.contextValueLabel.text = getString(R.string.settings_context_value, state.contextSize)
+
+        if (!binding.gpuLayersSlider.isPressed) {
+            binding.gpuLayersSlider.value = state.nGpuLayers.toFloat()
+        }
+        binding.gpuLayersValueLabel.text = getString(R.string.settings_gpu_layers_value, state.nGpuLayers)
+
+        if (!binding.batchSlider.isPressed) {
+            binding.batchSlider.value = state.batchSize.toFloat()
+        }
+        binding.batchValueLabel.text = getString(R.string.settings_batch_value, state.batchSize)
+
+        if (!binding.temperatureSlider.isPressed) {
+            binding.temperatureSlider.value = state.temperature
+        }
+        binding.temperatureValueLabel.text = getString(R.string.settings_temperature_value, state.temperature)
+
+        if (!binding.topPSlider.isPressed) {
+            binding.topPSlider.value = state.topP
+        }
+        binding.topPValueLabel.text = getString(R.string.settings_top_p_value, state.topP)
     }
 
     private fun updateDownloadedModels(models: List<String>, selectedModel: String?) {
@@ -337,14 +426,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateSettingInput(input: TextInputEditText, value: String) {
-        if (input.isFocused) {
+    private fun updateSettingInput(
+        input: MaterialAutoCompleteTextView,
+        adapter: ArrayAdapter<String>,
+        value: String
+    ) {
+        if (value.isNotEmpty() && adapter.getPosition(value) == -1) {
+            adapter.add(value)
+        }
+        if (input.isPopupShowing || input.isFocused) {
             return
         }
         val currentValue = input.text?.toString().orEmpty()
         if (currentValue != value) {
-            input.setText(value)
-            input.setSelection(input.text?.length ?: 0)
+            input.setText(value, false)
+        }
+    }
+
+    private fun setupDropdown(
+        input: MaterialAutoCompleteTextView,
+        @ArrayRes optionsRes: Int,
+        onSelected: (String) -> Unit
+    ): ArrayAdapter<String> {
+        val options = resources.getStringArray(optionsRes).toMutableList()
+        return ArrayAdapter(this, android.R.layout.simple_list_item_1, options).also { adapter ->
+            input.setAdapter(adapter)
+            input.setOnItemClickListener { _, _, position, _ ->
+                adapter.getItem(position)?.let(onSelected)
+            }
+            input.setOnFocusChangeListener { view, hasFocus ->
+                if (hasFocus) {
+                    (view as MaterialAutoCompleteTextView).showDropDown()
+                }
+            }
+            input.setOnClickListener {
+                input.showDropDown()
+            }
         }
     }
 

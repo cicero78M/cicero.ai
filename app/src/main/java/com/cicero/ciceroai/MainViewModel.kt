@@ -132,7 +132,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             codingWorkspace = context.getString(R.string.settings_coding_workspace_battery_saver),
             privacy = context.getString(R.string.settings_privacy_battery_saver),
             storage = context.getString(R.string.settings_storage_battery_saver),
-            diagnostics = context.getString(R.string.settings_diagnostics_battery_saver)
+            diagnostics = context.getString(R.string.settings_diagnostics_battery_saver),
+            contextSize = 1_024,
+            nGpuLayers = 0,
+            batchSize = 8,
+            temperature = 0.6f,
+            topP = 0.8f
         ),
         PresetOption.BALANCED to PresetValues(
             model = context.getString(R.string.settings_model_default),
@@ -143,7 +148,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             codingWorkspace = context.getString(R.string.settings_coding_workspace_default),
             privacy = context.getString(R.string.settings_privacy_default),
             storage = context.getString(R.string.settings_storage_default),
-            diagnostics = context.getString(R.string.settings_diagnostics_default)
+            diagnostics = context.getString(R.string.settings_diagnostics_default),
+            contextSize = 2_048,
+            nGpuLayers = 2,
+            batchSize = 16,
+            temperature = 0.7f,
+            topP = 0.9f
         ),
         PresetOption.TURBO to PresetValues(
             model = context.getString(R.string.settings_model_turbo),
@@ -154,7 +164,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             codingWorkspace = context.getString(R.string.settings_coding_workspace_turbo),
             privacy = context.getString(R.string.settings_privacy_turbo),
             storage = context.getString(R.string.settings_storage_turbo),
-            diagnostics = context.getString(R.string.settings_diagnostics_turbo)
+            diagnostics = context.getString(R.string.settings_diagnostics_turbo),
+            contextSize = 4_096,
+            nGpuLayers = 4,
+            batchSize = 32,
+            temperature = 0.9f,
+            topP = 0.95f
         )
     )
 
@@ -172,7 +187,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         codingWorkspace = defaultPresetValues.codingWorkspace,
         privacy = defaultPresetValues.privacy,
         storage = defaultPresetValues.storage,
-        diagnostics = defaultPresetValues.diagnostics
+        diagnostics = defaultPresetValues.diagnostics,
+        contextSize = defaultPresetValues.contextSize,
+        nGpuLayers = defaultPresetValues.nGpuLayers,
+        batchSize = defaultPresetValues.batchSize,
+        temperature = defaultPresetValues.temperature,
+        topP = defaultPresetValues.topP
     )
 
     private val settingsRepository = SettingsRepository(context.settingsDataStore, defaultSettingsConfig)
@@ -208,7 +228,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             codingWorkspaceSetting = latestSettingsConfig.codingWorkspace,
             privacySetting = latestSettingsConfig.privacy,
             storageSetting = latestSettingsConfig.storage,
-            diagnosticsSetting = latestSettingsConfig.diagnostics
+            diagnosticsSetting = latestSettingsConfig.diagnostics,
+            contextSize = latestSettingsConfig.contextSize,
+            nGpuLayers = latestSettingsConfig.nGpuLayers,
+            batchSize = latestSettingsConfig.batchSize,
+            temperature = latestSettingsConfig.temperature,
+            topP = latestSettingsConfig.topP
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -243,7 +268,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         codingWorkspaceSetting = sanitizedConfig.codingWorkspace,
                         privacySetting = sanitizedConfig.privacy,
                         storageSetting = sanitizedConfig.storage,
-                        diagnosticsSetting = sanitizedConfig.diagnostics
+                        diagnosticsSetting = sanitizedConfig.diagnostics,
+                        contextSize = sanitizedConfig.contextSize,
+                        nGpuLayers = sanitizedConfig.nGpuLayers,
+                        batchSize = sanitizedConfig.batchSize,
+                        temperature = sanitizedConfig.temperature,
+                        topP = sanitizedConfig.topP
                     )
                 }
                 refreshDownloadedModels()
@@ -323,10 +353,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
-                val samplingConfig = LlamaSettingsParser.parseSamplingConfig(
+                val baseSamplingConfig = LlamaSettingsParser.parseSamplingConfig(
                     latestSettingsConfig.sampling,
                     defaultMaxTokens = 256
                 )
+                val samplingConfig = baseSamplingConfig.copy(
+                    temperature = latestSettingsConfig.temperature,
+                    topP = latestSettingsConfig.topP
+                ).sanitized()
                 appendLog(
                     context.getString(
                         R.string.log_inference_requesting_completion,
@@ -409,6 +443,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.preset == preset) {
             return
         }
+        if (preset == PresetOption.CUSTOM) {
+            latestSettingsConfig = latestSettingsConfig.copy(preset = preset)
+            viewModelScope.launch { settingsRepository.updatePreset(preset) }
+            _uiState.update { state -> state.copy(selectedPreset = preset) }
+            return
+        }
         val values = presetValues[preset] ?: return
         latestSettingsConfig = latestSettingsConfig.copy(
             preset = preset,
@@ -420,7 +460,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             codingWorkspace = values.codingWorkspace,
             privacy = values.privacy,
             storage = values.storage,
-            diagnostics = values.diagnostics
+            diagnostics = values.diagnostics,
+            contextSize = values.contextSize,
+            nGpuLayers = values.nGpuLayers,
+            batchSize = values.batchSize,
+            temperature = values.temperature,
+            topP = values.topP
         )
         viewModelScope.launch { settingsRepository.applyPreset(preset, values) }
         _uiState.update { state ->
@@ -434,7 +479,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 codingWorkspaceSetting = values.codingWorkspace,
                 privacySetting = values.privacy,
                 storageSetting = values.storage,
-                diagnosticsSetting = values.diagnostics
+                diagnosticsSetting = values.diagnostics,
+                contextSize = values.contextSize,
+                nGpuLayers = values.nGpuLayers,
+                batchSize = values.batchSize,
+                temperature = values.temperature,
+                topP = values.topP
             )
         }
     }
@@ -443,6 +493,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.model == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(model = value)
         viewModelScope.launch { settingsRepository.updateModel(value) }
         _uiState.update { state ->
@@ -454,6 +505,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.runtime == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(runtime = value)
         viewModelScope.launch { settingsRepository.updateRuntime(value) }
         _uiState.update { state ->
@@ -465,6 +517,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.sampling == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(sampling = value)
         viewModelScope.launch { settingsRepository.updateSampling(value) }
         _uiState.update { state ->
@@ -476,6 +529,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.promptPersona == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(promptPersona = value)
         viewModelScope.launch { settingsRepository.updatePromptPersona(value) }
         _uiState.update { state ->
@@ -487,6 +541,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.memory == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(memory = value)
         viewModelScope.launch { settingsRepository.updateMemory(value) }
         _uiState.update { state ->
@@ -498,6 +553,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.codingWorkspace == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(codingWorkspace = value)
         viewModelScope.launch { settingsRepository.updateCodingWorkspace(value) }
         _uiState.update { state ->
@@ -509,6 +565,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.privacy == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(privacy = value)
         viewModelScope.launch { settingsRepository.updatePrivacy(value) }
         _uiState.update { state ->
@@ -520,6 +577,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.storage == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(storage = value)
         viewModelScope.launch { settingsRepository.updateStorage(value) }
         _uiState.update { state ->
@@ -531,11 +589,62 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (latestSettingsConfig.diagnostics == value) {
             return
         }
+        ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(diagnostics = value)
         viewModelScope.launch { settingsRepository.updateDiagnostics(value) }
         _uiState.update { state ->
             if (state.diagnosticsSetting == value) state else state.copy(diagnosticsSetting = value)
         }
+    }
+
+    fun onContextSizeChanged(value: Int) {
+        if (latestSettingsConfig.contextSize == value) {
+            return
+        }
+        ensureCustomPreset()
+        latestSettingsConfig = latestSettingsConfig.copy(contextSize = value)
+        viewModelScope.launch { settingsRepository.updateContextSize(value) }
+        _uiState.update { state -> state.copy(contextSize = value) }
+    }
+
+    fun onGpuLayersChanged(value: Int) {
+        if (latestSettingsConfig.nGpuLayers == value) {
+            return
+        }
+        ensureCustomPreset()
+        latestSettingsConfig = latestSettingsConfig.copy(nGpuLayers = value)
+        viewModelScope.launch { settingsRepository.updateGpuLayers(value) }
+        _uiState.update { state -> state.copy(nGpuLayers = value) }
+    }
+
+    fun onBatchSizeChanged(value: Int) {
+        if (latestSettingsConfig.batchSize == value) {
+            return
+        }
+        ensureCustomPreset()
+        latestSettingsConfig = latestSettingsConfig.copy(batchSize = value)
+        viewModelScope.launch { settingsRepository.updateBatchSize(value) }
+        _uiState.update { state -> state.copy(batchSize = value) }
+    }
+
+    fun onTemperatureChanged(value: Float) {
+        if (latestSettingsConfig.temperature == value) {
+            return
+        }
+        ensureCustomPreset()
+        latestSettingsConfig = latestSettingsConfig.copy(temperature = value)
+        viewModelScope.launch { settingsRepository.updateTemperature(value) }
+        _uiState.update { state -> state.copy(temperature = value) }
+    }
+
+    fun onTopPChanged(value: Float) {
+        if (latestSettingsConfig.topP == value) {
+            return
+        }
+        ensureCustomPreset()
+        latestSettingsConfig = latestSettingsConfig.copy(topP = value)
+        viewModelScope.launch { settingsRepository.updateTopP(value) }
+        _uiState.update { state -> state.copy(topP = value) }
     }
 
     private fun startDownload(url: String) {
@@ -654,11 +763,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val threads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-                val runtimeConfig = LlamaSettingsParser.parseRuntimeConfig(
+                val baseRuntimeConfig = LlamaSettingsParser.parseRuntimeConfig(
                     latestSettingsConfig.runtime,
                     fallbackThreads = threads,
-                    fallbackContext = 2_048
+                    fallbackContext = latestSettingsConfig.contextSize
                 )
+                val runtimeConfig = baseRuntimeConfig.copy(
+                    contextSize = latestSettingsConfig.contextSize,
+                    batchSize = latestSettingsConfig.batchSize.takeIf { it > 0 },
+                    nGpuLayers = latestSettingsConfig.nGpuLayers
+                ).sanitized()
                 controller.prepareSession(
                     modelFile = file,
                     runtimeConfig = runtimeConfig
@@ -737,6 +851,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun getSavedModelName(): String? = getSavedModelFile()?.name
+
+    private fun ensureCustomPreset() {
+        if (latestSettingsConfig.preset == PresetOption.CUSTOM) {
+            return
+        }
+        latestSettingsConfig = latestSettingsConfig.copy(preset = PresetOption.CUSTOM)
+        viewModelScope.launch { settingsRepository.updatePreset(PresetOption.CUSTOM) }
+        _uiState.update { state ->
+            if (state.selectedPreset == PresetOption.CUSTOM) {
+                state
+            } else {
+                state.copy(selectedPreset = PresetOption.CUSTOM)
+            }
+        }
+    }
 
     private fun sanitizeConfig(config: SettingsConfig): SettingsConfig {
         val path = config.modelPath ?: return config
