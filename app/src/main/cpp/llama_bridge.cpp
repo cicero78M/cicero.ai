@@ -665,17 +665,24 @@ std::string runCompletion(LlamaSession* session,
             msg << "Tidak dapat membuat sampler " << name << '.';
             throw std::runtime_error(msg.str());
         }
-        using ChainAddReturn = decltype(llama_sampler_chain_add(sampler, sampler_to_add));
-        if constexpr (std::is_same_v<ChainAddReturn, bool>) {
-            const bool added = llama_sampler_chain_add(sampler, sampler_to_add);
-            if (!added) {
-                llama_sampler_free(sampler_to_add);
-                std::ostringstream msg;
-                msg << "Tidak dapat menambahkan sampler " << name << " ke rantai.";
-                throw std::runtime_error(msg.str());
+        using ChainAddReturn = std::invoke_result_t<decltype(&llama_sampler_chain_add), llama_sampler*, llama_sampler*>;
+        static_assert(std::is_same_v<ChainAddReturn, bool> || std::is_same_v<ChainAddReturn, void>,
+                "llama_sampler_chain_add return type must be bool or void");
+
+        const bool added = [&]() {
+            if constexpr (std::is_same_v<ChainAddReturn, bool>) {
+                return llama_sampler_chain_add(sampler, sampler_to_add);
+            } else {
+                llama_sampler_chain_add(sampler, sampler_to_add);
+                return true;
             }
-        } else {
-            llama_sampler_chain_add(sampler, sampler_to_add);
+        }();
+
+        if (!added) {
+            llama_sampler_free(sampler_to_add);
+            std::ostringstream msg;
+            msg << "Tidak dapat menambahkan sampler " << name << " ke rantai.";
+            throw std::runtime_error(msg.str());
         }
     };
 
