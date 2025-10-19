@@ -1,7 +1,6 @@
 package com.cicero.ciceroai
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -10,6 +9,7 @@ import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.ArrayRes
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
@@ -56,6 +56,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var privacySettingAdapter: ArrayAdapter<String>
     private lateinit var storageSettingAdapter: ArrayAdapter<String>
     private lateinit var diagnosticsSettingAdapter: ArrayAdapter<String>
+    private val importModelLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (_: SecurityException) {
+                    // Ignore; some providers do not support persistable permissions.
+                }
+                viewModel.onModelFileImportRequested(uri)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -227,6 +241,10 @@ class MainActivity : AppCompatActivity() {
             viewModel.onManualDownloadRequested(url)
         }
 
+        binding.importModelButton.setOnClickListener {
+            importModelLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+        }
+
         binding.runButton.setOnClickListener {
             hideKeyboard()
             val prompt = binding.promptInput.text?.toString().orEmpty()
@@ -271,6 +289,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.standardModelDownloadButton.isEnabled = state.isDownloadButtonEnabled
         binding.manualDownloadInputLayout.setEndIconVisible(state.isDownloadButtonEnabled)
+        binding.importModelButton.isEnabled = state.isDownloadButtonEnabled
 
         updateStandardModelSpinner(state.standardModels, state.selectedStandardModelIndex, state.isDownloadButtonEnabled)
         renderSelectedStandardModel(state)

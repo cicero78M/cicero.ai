@@ -1,9 +1,13 @@
 package com.cicero.ciceroai.llama
 
 import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import com.cicero.ciceroai.R
+import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -185,6 +189,57 @@ class ModelAssetManager(
         throw lastError ?: IOException("Unduhan gagal tanpa pengecualian yang diketahui")
     }
 
+    suspend fun importModel(uri: Uri): File = withContext(dispatcher) {
+        val resolver = context.contentResolver
+        val displayName =
+            queryDisplayName(uri)
+                ?: uri.lastPathSegment?.substringAfterLast('/')
+                ?: throw IOException(context.getString(R.string.error_model_import_missing_name))
+        val safeName = File(displayName).name.takeIf { it.isNotBlank() }
+            ?: throw IOException(context.getString(R.string.error_model_import_missing_name))
+        if (!safeName.lowercase(Locale.ROOT).endsWith(".gguf")) {
+            throw IOException(context.getString(R.string.error_model_import_invalid_extension))
+        }
+
+        val modelsDir = File(context.filesDir, "models").apply { mkdirs() }
+        val targetFile = File(modelsDir, safeName)
+        val tempPrefix = safeName.substringBefore('.').takeIf { it.length >= 3 } ?: "model"
+        val tempFile = File.createTempFile(tempPrefix, ".import", modelsDir)
+
+        try {
+            resolver.openInputStream(uri)?.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: throw IOException(context.getString(R.string.error_model_import_unreadable))
+        } catch (error: IOException) {
+            tempFile.delete()
+            throw error
+        }
+
+        if (tempFile.length() == 0L) {
+            tempFile.delete()
+            throw IOException(context.getString(R.string.error_model_import_unreadable))
+        }
+
+        if (targetFile.exists()) {
+            targetFile.delete()
+        }
+
+        if (!tempFile.renameTo(targetFile)) {
+            tempFile.copyTo(targetFile, overwrite = true)
+            tempFile.delete()
+        }
+
+        try {
+            DocumentFile.fromSingleUri(context, uri)?.delete()
+        } catch (_: SecurityException) {
+            // Ignore failures when the storage provider does not allow deletion.
+        }
+
+        targetFile
+    }
+
     private fun parseRetryAfterSeconds(headerValue: String?): Long? {
         val trimmed = headerValue?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         return trimmed.toLongOrNull()?.coerceAtLeast(0L)
@@ -238,5 +293,18 @@ class ModelAssetManager(
                 seconds
             )
         }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        val resolver = context.contentResolver
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index >= 0) {
+                    return cursor.getString(index)
+                }
+            }
+        }
+        return null
     }
 }

@@ -398,6 +398,21 @@
                                 android:maxLines="1"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
                         </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/importModelButton"
+                            style="@style/Widget.MaterialComponents.Button.Icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:contentDescription="@string/action_import_model_description"
+                            android:text="@string/action_import_model"
+                            android:textAllCaps="false"
+                            app:icon="@drawable/ic_drive_file_move"
+                            app:iconGravity="textStart"
+                            app:iconPadding="12dp"
+                            app:iconTint="?attr/colorOnPrimary"
+                            app:strokeWidth="0dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 

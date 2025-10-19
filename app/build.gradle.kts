@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.jvm.coroutines.core)
     implementation(libs.jvm.coroutines.android)
     implementation(libs.okhttp)
+    implementation(libs.androidx.documentfile)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

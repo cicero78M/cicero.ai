@@ -1,6 +1,7 @@
 package com.cicero.ciceroai.llama
 
 import android.content.Context
+import android.net.Uri
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -76,6 +77,8 @@ class LlamaController(context: Context) {
         onProgress: suspend (downloadedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> },
         onStatus: suspend (message: String) -> Unit = {}
     ): File = assetManager.downloadModel(url, fileName, onProgress, onStatus)
+
+    suspend fun importModel(uri: Uri): File = assetManager.importModel(uri)
 
     fun isVulkanAvailable(): Boolean = LlamaBridge.isVulkanAvailable()
 
