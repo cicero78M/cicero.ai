@@ -101,29 +101,31 @@ message(STATUS "CICERO_ENABLE_VULKAN = ${CICERO_ENABLE_VULKAN}")
 message(STATUS "GGML_VULKAN          = ${GGML_VULKAN}")
 
 # ==== Ambil Vulkan headers tanpa menambah subdirectory ====
-FetchContent_Declare(
-        VulkanHeaders
-        URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.297.tar.gz
-)
+if (CICERO_ENABLE_VULKAN)
+    FetchContent_Declare(
+            VulkanHeaders
+            URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.297.tar.gz
+    )
 
-FetchContent_Declare(
-        VulkanHpp
-        URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.297.tar.gz
-)
+    FetchContent_Declare(
+            VulkanHpp
+            URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.297.tar.gz
+    )
 
-FetchContent_GetProperties(VulkanHeaders)
-if (NOT VulkanHeaders_POPULATED)
-    FetchContent_Populate(VulkanHeaders)
+    FetchContent_GetProperties(VulkanHeaders)
+    if (NOT VulkanHeaders_POPULATED)
+        FetchContent_Populate(VulkanHeaders)
+    endif()
+
+    FetchContent_GetProperties(VulkanHpp)
+    if (NOT VulkanHpp_POPULATED)
+        FetchContent_Populate(VulkanHpp)
+    endif()
+
+    set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
+    set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
+    set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
 endif()
-
-FetchContent_GetProperties(VulkanHpp)
-if (NOT VulkanHpp_POPULATED)
-    FetchContent_Populate(VulkanHpp)
-endif()
-
-set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
-set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
-set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
 
 # ==== Ambil llama.cpp (GGML) ====
 FetchContent_Declare(
@@ -133,6 +135,26 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(llama_cpp)
+
+if (CICERO_ENABLE_VULKAN)
+    # Pastikan target ggml-vulkan mendapatkan header Vulkan-Hpp yang kami unduh.
+    # Target ini didefinisikan oleh llama.cpp saat GGML_VULKAN=ON.
+    set(_cicero_vk_include_dirs)
+    if (DEFINED _VULKAN_HEADERS_INC)
+        list(APPEND _cicero_vk_include_dirs "${_VULKAN_HEADERS_INC}")
+    endif()
+    if (DEFINED _VULKAN_HPP_INC1)
+        list(APPEND _cicero_vk_include_dirs "${_VULKAN_HPP_INC1}")
+    endif()
+    if (DEFINED _VULKAN_HPP_INC2)
+        list(APPEND _cicero_vk_include_dirs "${_VULKAN_HPP_INC2}")
+    endif()
+
+    if (TARGET ggml-vulkan AND _cicero_vk_include_dirs)
+        target_include_directories(ggml-vulkan PRIVATE ${_cicero_vk_include_dirs})
+    endif()
+    unset(_cicero_vk_include_dirs)
+endif()
 
 # ==== Library bridge kamu ====
 add_library(
@@ -175,8 +197,8 @@ endif()
 target_include_directories(
         cicero_llama
         PRIVATE
-        ${_VULKAN_HEADERS_INC}
-        ${_VULKAN_HPP_INC1}
-        ${_VULKAN_HPP_INC2}
+        $<$<BOOL:${CICERO_ENABLE_VULKAN}>:${_VULKAN_HEADERS_INC}>
+        $<$<BOOL:${CICERO_ENABLE_VULKAN}>:${_VULKAN_HPP_INC1}>
+        $<$<BOOL:${CICERO_ENABLE_VULKAN}>:${_VULKAN_HPP_INC2}>
         ${llama_cpp_SOURCE_DIR}/include
 )
