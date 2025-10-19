@@ -339,6 +339,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startDownload(sanitized)
     }
 
+    fun onModelFileImportRequested(uri: Uri) {
+        if (!_uiState.value.isDownloadButtonEnabled) {
+            return
+        }
+        downloadJob?.cancel()
+        downloadJob = viewModelScope.launch {
+            val previousRunState = _uiState.value.isRunButtonEnabled
+            _uiState.update { state ->
+                state.copy(
+                    isDownloadButtonEnabled = false,
+                    isRunButtonEnabled = false,
+                    modelStatus = context.getString(R.string.model_status_importing),
+                    downloadProgressVisible = true,
+                    downloadProgressIndeterminate = true,
+                    downloadProgressValue = 0,
+                    downloadProgressPercentText = context.getString(R.string.download_progress_percent_placeholder),
+                    downloadProgressDataText = context.getString(R.string.download_progress_data_placeholder)
+                )
+            }
+
+            try {
+                val modelFile = controller.importModel(uri)
+                saveModelReference(modelFile)
+                _uiState.update { state ->
+                    state.copy(
+                        modelStatus = context.getString(R.string.model_status_import_success, modelFile.name)
+                    )
+                }
+                refreshDownloadedModels()
+                prepareModel(modelFile)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
+                _uiState.update { state ->
+                    state.copy(
+                        modelStatus = context.getString(R.string.model_status_import_failed, message),
+                        isRunButtonEnabled = previousRunState
+                    )
+                }
+            } finally {
+                _uiState.update { state ->
+                    state.copy(
+                        isDownloadButtonEnabled = true,
+                        downloadProgressVisible = false,
+                        downloadProgressIndeterminate = true,
+                        downloadProgressValue = 0,
+                        downloadProgressPercentText = context.getString(R.string.download_progress_percent_placeholder),
+                        downloadProgressDataText = context.getString(R.string.download_progress_data_placeholder)
+                    )
+                }
+            }
+        }
+    }
+
     fun runInference(prompt: String) {
         val sanitizedPrompt = prompt.trim()
         if (sanitizedPrompt.isEmpty()) {
