@@ -115,11 +115,13 @@ if (CICERO_ENABLE_VULKAN)
     FetchContent_GetProperties(VulkanHeaders)
     if (NOT VulkanHeaders_POPULATED)
         FetchContent_Populate(VulkanHeaders)
+        FetchContent_GetProperties(VulkanHeaders)
     endif()
 
     FetchContent_GetProperties(VulkanHpp)
     if (NOT VulkanHpp_POPULATED)
         FetchContent_Populate(VulkanHpp)
+        FetchContent_GetProperties(VulkanHpp)
     endif()
 
     set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
