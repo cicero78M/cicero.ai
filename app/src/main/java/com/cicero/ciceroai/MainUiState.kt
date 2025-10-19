@@ -37,6 +37,8 @@ data class MainUiState(
     val diagnosticsSetting: String,
     val contextSize: Int,
     val nGpuLayers: Int,
+    val effectiveGpuLayers: Int,
+    val isGpuForcedOff: Boolean,
     val batchSize: Int,
     val temperature: Float,
     val topP: Float,

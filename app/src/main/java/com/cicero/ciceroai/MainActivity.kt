@@ -322,9 +322,14 @@ class MainActivity : AppCompatActivity() {
         binding.contextValueLabel.text = getString(R.string.settings_context_value, state.contextSize)
 
         if (!binding.gpuLayersSlider.isPressed) {
-            binding.gpuLayersSlider.value = state.nGpuLayers.toFloat()
+            binding.gpuLayersSlider.value = state.effectiveGpuLayers.toFloat()
         }
-        binding.gpuLayersValueLabel.text = getString(R.string.settings_gpu_layers_value, state.nGpuLayers)
+        binding.gpuLayersSlider.isEnabled = !state.isGpuForcedOff
+        binding.gpuLayersValueLabel.text = if (state.isGpuForcedOff) {
+            getString(R.string.settings_gpu_layers_forced_off)
+        } else {
+            getString(R.string.settings_gpu_layers_value, state.effectiveGpuLayers)
+        }
 
         if (!binding.batchSlider.isPressed) {
             binding.batchSlider.value = state.batchSize.toFloat()
