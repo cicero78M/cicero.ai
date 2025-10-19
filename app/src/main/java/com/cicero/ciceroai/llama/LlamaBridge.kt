@@ -1,8 +1,31 @@
 package com.cicero.ciceroai.llama
 
+import android.util.Log
+
 internal object LlamaBridge {
+    private const val TAG = "LlamaBridge"
+
+    private val libraryLoadError: Throwable?
+
+    private val isLibraryLoaded: Boolean
+        get() = libraryLoadError == null
+
     init {
-        System.loadLibrary("cicero_llama")
+        libraryLoadError = runCatching { System.loadLibrary("cicero_llama") }
+            .onFailure { error ->
+                Log.e(TAG, "Failed to load native library libcicero_llama.so", error)
+            }
+            .exceptionOrNull()
+    }
+
+    private fun ensureLibraryLoaded() {
+        if (!isLibraryLoaded) {
+            throw IllegalStateException(
+                "Native inference runtime (libcicero_llama.so) is not available. " +
+                    "Ensure the JNI library is bundled with the application.",
+                libraryLoadError
+            )
+        }
     }
 
     private external fun nativeInitWithConfig(
@@ -12,6 +35,7 @@ internal object LlamaBridge {
 
     @JvmStatic
     fun nativeInit(modelPath: String, runtimeConfig: RuntimeConfig): Long {
+        ensureLibraryLoaded()
         return nativeInitWithConfig(modelPath, runtimeConfig.sanitized())
     }
 
@@ -22,6 +46,7 @@ internal object LlamaBridge {
         )
     )
     fun nativeInit(modelPath: String, threadCount: Int, contextSize: Int): Long {
+        ensureLibraryLoaded()
         return nativeInit(
             modelPath,
             RuntimeConfig(
@@ -31,11 +56,23 @@ internal object LlamaBridge {
         )
     }
 
-    external fun nativeRelease(handle: Long)
+    private external fun nativeReleaseInternal(handle: Long)
+
+    fun nativeRelease(handle: Long) {
+        if (!isLibraryLoaded) {
+            return
+        }
+        nativeReleaseInternal(handle)
+    }
 
     external fun nativeIsVulkanAvailable(): Boolean
 
-    fun isVulkanAvailable(): Boolean = nativeIsVulkanAvailable()
+    fun isVulkanAvailable(): Boolean? {
+        if (!isLibraryLoaded) {
+            return null
+        }
+        return nativeIsVulkanAvailable()
+    }
 
     fun interface CompletionListener {
         fun onToken(token: String)
@@ -47,6 +84,7 @@ internal object LlamaBridge {
         sampling: SamplingConfig,
         listener: CompletionListener?
     ): String {
+        ensureLibraryLoaded()
         val sanitized = sampling.sanitized()
         val nativeListener = listener?.let { NativeCompletionForwarder(it) }
         val stopSequences = sanitized.stopSequences.toTypedArray()
@@ -73,6 +111,7 @@ internal object LlamaBridge {
         maxTokens: Int,
         listener: CompletionListener?
     ): String {
+        ensureLibraryLoaded()
         return nativeCompletionWithProgress(
             handle,
             prompt,
@@ -82,6 +121,7 @@ internal object LlamaBridge {
     }
 
     fun nativeCompletion(handle: Long, prompt: String, maxTokens: Int): String {
+        ensureLibraryLoaded()
         return nativeCompletionWithOptions(
             handle = handle,
             prompt = prompt,
@@ -129,3 +169,4 @@ internal object LlamaBridge {
         fun onTokenGenerated(token: String)
     }
 }
+

@@ -80,7 +80,7 @@ class LlamaController(context: Context) {
 
     suspend fun importModel(uri: Uri): File = assetManager.importModel(uri)
 
-    fun isVulkanAvailable(): Boolean = LlamaBridge.isVulkanAvailable()
+    fun isVulkanAvailable(): Boolean? = LlamaBridge.isVulkanAvailable()
 
     fun release() {
         session?.let {
