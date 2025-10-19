@@ -30,9 +30,13 @@ class ModelAssetManager(
         private const val USER_AGENT = "CiceroAI-ModelDownloader/1.0"
         private const val ACCEPT_HEADER = "application/octet-stream, */*"
         private const val DEFAULT_CONNECT_TIMEOUT_SECONDS = 30L
-        private const val DEFAULT_READ_TIMEOUT_MINUTES = 15L
-        private const val DEFAULT_WRITE_TIMEOUT_MINUTES = 15L
-        private const val DEFAULT_CALL_TIMEOUT_MINUTES = 20L
+        // Multi-gigabyte model downloads can legitimately take hours on slow connections, so we
+        // provide generous read/write windows to avoid disconnecting mid-transfer.
+        private const val DEFAULT_READ_TIMEOUT_MINUTES = 240L
+        private const val DEFAULT_WRITE_TIMEOUT_MINUTES = 240L
+        // A call timeout of zero disables the global stopwatch. This prevents OkHttp from aborting
+        // a long-running download that is otherwise still making forward progress.
+        private const val DEFAULT_CALL_TIMEOUT_MINUTES = 0L
         private const val MAX_RETRY_AFTER_SECONDS = 600L
         private const val INITIAL_BACKOFF_MILLIS = 1_000L
         private const val MAX_BACKOFF_MILLIS = 60_000L
