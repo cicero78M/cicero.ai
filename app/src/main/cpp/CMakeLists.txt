@@ -103,12 +103,12 @@ message(STATUS "GGML_VULKAN          = ${GGML_VULKAN}")
 # ==== Ambil Vulkan headers tanpa menambah subdirectory ====
 FetchContent_Declare(
         VulkanHeaders
-        URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.296.tar.gz
+        URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.297.tar.gz
 )
 
 FetchContent_Declare(
         VulkanHpp
-        URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.296.tar.gz
+        URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.297.tar.gz
 )
 
 FetchContent_GetProperties(VulkanHeaders)
