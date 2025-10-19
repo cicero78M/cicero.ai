@@ -115,7 +115,7 @@ tasks.register("patchHostToolchain") {
             return@doLast
         }
 
-        val msvcTc = file("app/cmake/msvc-host.cmake").absoluteFile
+        val msvcTc = file("cmake/msvc-host.cmake").absoluteFile
         require(msvcTc.exists()) {
             "Missing app/cmake/msvc-host.cmake — buat dulu sesuai instruksi."
         }
