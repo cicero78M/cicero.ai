@@ -100,6 +100,15 @@ endif()
 message(STATUS "CICERO_ENABLE_VULKAN = ${CICERO_ENABLE_VULKAN}")
 message(STATUS "GGML_VULKAN          = ${GGML_VULKAN}")
 
+# ==== Ambil Vulkan-Hpp ====
+FetchContent_Declare(
+        vulkan_hpp
+        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Hpp.git
+        GIT_TAG v1.3.268
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(vulkan_hpp)
+
 # ==== Ambil llama.cpp (GGML) ====
 FetchContent_Declare(
         llama_cpp
@@ -150,5 +159,6 @@ endif()
 target_include_directories(
         cicero_llama
         PRIVATE
+        ${vulkan_hpp_SOURCE_DIR}/include
         ${llama_cpp_SOURCE_DIR}/include
 )
