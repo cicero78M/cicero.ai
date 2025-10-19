@@ -7,6 +7,24 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # === Lokasi VS Tools (cl/link) ===
 # Bisa dioverride lewat -DCICERO_VCTOOLS_BIN=... bila mau.
+# Akan coba juga beberapa environment variable umum dari VS dev prompt.
+if(NOT CICERO_VCTOOLS_BIN)
+    if(DEFINED ENV{CICERO_VCTOOLS_BIN})
+        file(TO_CMAKE_PATH "$ENV{CICERO_VCTOOLS_BIN}" _ENV_VCTOOLS_BIN)
+        set(CICERO_VCTOOLS_BIN "${_ENV_VCTOOLS_BIN}")
+    endif()
+endif()
+
+if(NOT CICERO_VCTOOLS_BIN)
+    if(DEFINED ENV{VCToolsInstallDir})
+        set(_ENV_VCTOOLS "$ENV{VCToolsInstallDir}")
+        file(TO_CMAKE_PATH "${_ENV_VCTOOLS}" _ENV_VCTOOLS_NORM)
+        if(EXISTS "${_ENV_VCTOOLS_NORM}/bin/Hostx64/x64/cl.exe")
+            set(CICERO_VCTOOLS_BIN "${_ENV_VCTOOLS_NORM}/bin/Hostx64/x64")
+        endif()
+    endif()
+endif()
+
 if(NOT CICERO_VCTOOLS_BIN)
     # Root default VS Build Tools 2022
     set(_VCTOOLS_ROOT "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC")
@@ -21,6 +39,38 @@ endif()
 
 # === Lokasi Windows 10 SDK (rc/mt) ===
 # Bisa dioverride lewat -DCICERO_WINSDK_BIN=... bila mau.
+# Akan coba juga environment variable dari VS dev prompt.
+if(NOT CICERO_WINSDK_BIN)
+    if(DEFINED ENV{CICERO_WINSDK_BIN})
+        file(TO_CMAKE_PATH "$ENV{CICERO_WINSDK_BIN}" _ENV_WINSDK_BIN_DIRECT)
+        set(CICERO_WINSDK_BIN "${_ENV_WINSDK_BIN_DIRECT}")
+    endif()
+endif()
+
+if(NOT CICERO_WINSDK_BIN)
+    if(DEFINED ENV{WindowsSdkVerBinPath})
+        set(_ENV_WINSDK_BIN "$ENV{WindowsSdkVerBinPath}")
+        file(TO_CMAKE_PATH "${_ENV_WINSDK_BIN}" _ENV_WINSDK_BIN_NORM)
+        # WindowsSdkVerBinPath biasanya sudah menunjuk ke .../bin/<versi>/
+        if(EXISTS "${_ENV_WINSDK_BIN_NORM}/x64/rc.exe")
+            set(CICERO_WINSDK_BIN "${_ENV_WINSDK_BIN_NORM}/x64")
+        endif()
+    endif()
+endif()
+
+if(NOT CICERO_WINSDK_BIN)
+    if(DEFINED ENV{WindowsSdkDir} AND DEFINED ENV{WindowsSDKVersion})
+        set(_ENV_WINSDK_DIR "$ENV{WindowsSdkDir}")
+        file(TO_CMAKE_PATH "${_ENV_WINSDK_DIR}" _ENV_WINSDK_DIR_NORM)
+        set(_ENV_WINSDK_VER "$ENV{WindowsSDKVersion}")
+        string(REGEX REPLACE "/$" "" _ENV_WINSDK_VER_TRIM "${_ENV_WINSDK_VER}")
+        set(_ENV_WINSDK_BIN "${_ENV_WINSDK_DIR_NORM}/bin/${_ENV_WINSDK_VER_TRIM}")
+        if(EXISTS "${_ENV_WINSDK_BIN}/x64/rc.exe")
+            set(CICERO_WINSDK_BIN "${_ENV_WINSDK_BIN}/x64")
+        endif()
+    endif()
+endif()
+
 if(NOT CICERO_WINSDK_BIN)
     set(_WINSDK_ROOT "C:/Program Files (x86)/Windows Kits/10/bin")
     file(GLOB _WINSDK_VERS LIST_DIRECTORIES TRUE "${_WINSDK_ROOT}/10.*")
