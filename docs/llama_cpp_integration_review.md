@@ -40,7 +40,9 @@ improvements for both application builds and reusable AAR packaging.
 - `LlamaController` orchestrates session creation, inference, and teardown on a background dispatcher
   while exposing convenience helpers to prepare models from assets or downloads. 【F:app/src/main/java/com/cicero/ciceroai/llama/LlamaController.kt†L8-L48】
 - `ModelAssetManager` copies bundled GGUF assets on demand and supports HTTP(S) downloads into the
-  app's private storage, enabling runtime model management. 【F:app/src/main/java/com/cicero/ciceroai/llama/ModelAssetManager.kt†L12-L72】
+  app's private storage, enabling runtime model management. Generous 4-hour read/write timeouts and
+  a disabled call timeout ensure multi-gigabyte model downloads can finish even on slow networks.
+  【F:app/src/main/java/com/cicero/ciceroai/llama/ModelAssetManager.kt†L12-L101】
 
 ## Packaging Considerations for AAR Distribution
 1. **Resource Stripping** – The Gradle packaging configuration marks `.gguf` files as uncompressed to
