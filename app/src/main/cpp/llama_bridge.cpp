@@ -808,8 +808,17 @@ Java_com_cicero_ciceroai_llama_LlamaBridge_nativeIsVulkanAvailable(
         ~BackendGuard() { releaseBackend(); }
     };
     [[maybe_unused]] BackendGuard guard;
-    const bool available = ggml_backend_vk_get_device_count() > 0;
-    return available ? JNI_TRUE : JNI_FALSE;
+    try {
+        const bool available = ggml_backend_vk_get_device_count() > 0;
+        return available ? JNI_TRUE : JNI_FALSE;
+    } catch (const std::exception& ex) {
+        __android_log_print(ANDROID_LOG_ERROR, kTag, "nativeIsVulkanAvailable gagal: %s", ex.what());
+        return JNI_FALSE;
+    } catch (...) {
+        __android_log_print(
+                ANDROID_LOG_ERROR, kTag, "nativeIsVulkanAvailable gagal: pengecualian tidak diketahui.");
+        return JNI_FALSE;
+    }
 #else
     (void) env;
     return JNI_FALSE;
