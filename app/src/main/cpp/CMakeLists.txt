@@ -124,6 +124,19 @@ if (CICERO_ENABLE_VULKAN)
         FetchContent_GetProperties(VulkanHpp)
     endif()
 
+    if (NOT EXISTS "${VulkanHeaders_SOURCE_DIR}")
+        message(FATAL_ERROR
+                "VulkanHeaders source directory hilang: ${VulkanHeaders_SOURCE_DIR}. "
+                "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Headers.")
+    endif()
+
+    set(_cicero_vulkanhpp_header "${VulkanHpp_SOURCE_DIR}/include/vulkan/vulkan.hpp")
+    if (NOT EXISTS "${_cicero_vulkanhpp_header}")
+        message(FATAL_ERROR
+                "Vulkan-Hpp tidak lengkap; header ${_cicero_vulkanhpp_header} tidak ditemukan. "
+                "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Hpp.")
+    endif()
+
     set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
     set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
     set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
@@ -136,14 +149,20 @@ if (CICERO_ENABLE_VULKAN)
         endif()
     endforeach()
 
+    list(REMOVE_DUPLICATES _VULKAN_ALL_INCLUDES)
+
     if (_VULKAN_ALL_INCLUDES)
-        list(REMOVE_DUPLICATES _VULKAN_ALL_INCLUDES)
         # Simpan di cache supaya FindVulkan milik ggml bisa langsung memakai path yang lengkap.
         set(Vulkan_INCLUDE_DIRS "${_VULKAN_ALL_INCLUDES}" CACHE STRING
                 "Aggregated Vulkan include directories" FORCE)
         # Beberapa FindVulkan.cmake masih membaca variabel singular ini.
         list(GET _VULKAN_ALL_INCLUDES 0 _VULKAN_PRIMARY_INCLUDE)
         set(Vulkan_INCLUDE_DIR "${_VULKAN_PRIMARY_INCLUDE}" CACHE PATH
+                "Primary Vulkan include directory" FORCE)
+    else()
+        set(Vulkan_INCLUDE_DIRS "" CACHE STRING
+                "Aggregated Vulkan include directories" FORCE)
+        set(Vulkan_INCLUDE_DIR "" CACHE PATH
                 "Primary Vulkan include directory" FORCE)
     endif()
 endif()
@@ -161,15 +180,11 @@ if (CICERO_ENABLE_VULKAN)
     # Pastikan target ggml-vulkan mendapatkan header Vulkan-Hpp yang kami unduh.
     # Target ini didefinisikan oleh llama.cpp saat GGML_VULKAN=ON.
     set(_cicero_vk_include_dirs)
-    if (DEFINED _VULKAN_HEADERS_INC)
-        list(APPEND _cicero_vk_include_dirs "${_VULKAN_HEADERS_INC}")
-    endif()
-    if (DEFINED _VULKAN_HPP_INC1)
-        list(APPEND _cicero_vk_include_dirs "${_VULKAN_HPP_INC1}")
-    endif()
-    if (DEFINED _VULKAN_HPP_INC2)
-        list(APPEND _cicero_vk_include_dirs "${_VULKAN_HPP_INC2}")
-    endif()
+    foreach(_vk_inc IN LISTS _VULKAN_ALL_INCLUDES)
+        if (EXISTS "${_vk_inc}")
+            list(APPEND _cicero_vk_include_dirs "${_vk_inc}")
+        endif()
+    endforeach()
 
     if (TARGET ggml-vulkan AND _cicero_vk_include_dirs)
         target_include_directories(ggml-vulkan PRIVATE ${_cicero_vk_include_dirs})
