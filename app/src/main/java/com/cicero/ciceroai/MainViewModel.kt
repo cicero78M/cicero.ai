@@ -247,6 +247,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var prepareJob: Job? = null
     private var downloadJob: Job? = null
+    private var isStreamingInference: Boolean = false
 
     init {
         refreshDownloadedModels()
@@ -256,8 +257,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             controller.inferenceProgress.collect { token ->
-                val printableToken = token.replace("\n", "\\n")
-                appendLog(context.getString(R.string.log_inference_progress, printableToken))
+                if (isStreamingInference) {
+                    _uiState.update { state ->
+                        state.copy(outputText = state.outputText + token)
+                    }
+                }
             }
         }
         viewModelScope.launch {
@@ -407,15 +411,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
+            isStreamingInference = true
             _uiState.update { state ->
                 state.copy(
                     promptError = null,
                     isRunButtonEnabled = false,
-                    outputText = context.getString(R.string.inference_placeholder),
-                    logMessages = listOf(
-                        context.getString(R.string.log_inference_started),
-                        context.getString(R.string.log_inference_preparing_prompt)
-                    )
+                    outputText = "",
+                    logMessages = emptyList()
                 )
             }
 
@@ -444,6 +446,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 )
                 val result = controller.runInference(sanitizedPrompt, samplingConfig)
+                isStreamingInference = false
                 appendLog(context.getString(R.string.log_inference_success))
                 _uiState.update { state ->
                     state.copy(outputText = result)
@@ -451,12 +454,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                isStreamingInference = false
                 val message = error.localizedMessage?.takeIf { it.isNotBlank() } ?: error.toString()
                 appendLog(context.getString(R.string.log_inference_error, message))
                 _uiState.update { state ->
                     state.copy(outputText = message)
                 }
             } finally {
+                isStreamingInference = false
                 _uiState.update { state ->
                     state.copy(isRunButtonEnabled = true)
                 }

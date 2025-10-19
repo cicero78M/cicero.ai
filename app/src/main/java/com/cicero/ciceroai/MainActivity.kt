@@ -3,6 +3,7 @@ package com.cicero.ciceroai
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.method.ScrollingMovementMethod
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var privacySettingAdapter: ArrayAdapter<String>
     private lateinit var storageSettingAdapter: ArrayAdapter<String>
     private lateinit var diagnosticsSettingAdapter: ArrayAdapter<String>
+    private var lastRenderedOutput: String = ""
     private val importModelLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
@@ -76,6 +78,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.outputView.movementMethod = ScrollingMovementMethod.getInstance()
+        binding.outputView.isVerticalScrollBarEnabled = true
 
         setSupportActionBar(binding.topAppBar)
 
@@ -296,8 +301,19 @@ class MainActivity : AppCompatActivity() {
         renderSelectedStandardModel(state)
 
         binding.promptInputLayout.error = state.promptError
-        binding.outputView.text = state.outputText
-        binding.logTicker.text = state.logMessages.lastOrNull() ?: getString(R.string.log_placeholder)
+        if (lastRenderedOutput != state.outputText) {
+            lastRenderedOutput = state.outputText
+            binding.outputView.text = state.outputText
+            binding.outputView.post {
+                val layout = binding.outputView.layout ?: return@post
+                val scrollAmount = layout.getLineTop(binding.outputView.lineCount) - binding.outputView.height
+                if (scrollAmount > 0) {
+                    binding.outputView.scrollTo(0, scrollAmount)
+                } else {
+                    binding.outputView.scrollTo(0, 0)
+                }
+            }
+        }
 
         updateModelSpinner(state.downloadedModels, state.selectedModelName)
         updateDownloadedModels(state.downloadedModels, state.selectedModelName)
