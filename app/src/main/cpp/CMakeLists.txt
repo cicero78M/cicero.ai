@@ -106,6 +106,8 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Hpp.git
         GIT_TAG v1.3.268
         GIT_SHALLOW TRUE
+        GIT_SUBMODULES ""
+        GIT_SUBMODULES_RECURSE FALSE
 )
 FetchContent_MakeAvailable(vulkan_hpp)
 
