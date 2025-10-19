@@ -90,6 +90,76 @@ if(NOT EXISTS "${CICERO_WINSDK_BIN}/rc.exe")
     message(FATAL_ERROR "rc.exe tidak ditemukan. Set -DCICERO_WINSDK_BIN ke folder Windows Kits .../bin/<versi>/x64.")
 endif()
 
+# Derive MSVC root from the resolved Hostx64/x64 tool path.
+get_filename_component(_MSVC_HOST_DIR "${CICERO_VCTOOLS_BIN}" DIRECTORY)
+get_filename_component(_MSVC_BIN_DIR "${_MSVC_HOST_DIR}" DIRECTORY)
+get_filename_component(MSVC_ROOT "${_MSVC_BIN_DIR}" DIRECTORY)
+
+set(_MSVC_INCLUDE_DIR "${MSVC_ROOT}/include")
+if(NOT EXISTS "${_MSVC_INCLUDE_DIR}")
+    message(FATAL_ERROR "MSVC include directory tidak ditemukan: ${_MSVC_INCLUDE_DIR}")
+endif()
+
+set(_MSVC_LIB_DIR "${MSVC_ROOT}/lib/x64")
+if(NOT EXISTS "${_MSVC_LIB_DIR}")
+    message(FATAL_ERROR "MSVC lib directory tidak ditemukan: ${_MSVC_LIB_DIR}")
+endif()
+
+# Resolve Windows SDK version and base directory from the rc.exe location.
+get_filename_component(_WINSDK_VERSION_DIR "${CICERO_WINSDK_BIN}" DIRECTORY)
+get_filename_component(_WINSDK_VERSION "${_WINSDK_VERSION_DIR}" NAME)
+if(NOT _WINSDK_VERSION)
+    message(FATAL_ERROR "Tidak bisa menentukan versi Windows SDK dari ${CICERO_WINSDK_BIN}")
+endif()
+get_filename_component(_WINSDK_BIN_DIR "${_WINSDK_VERSION_DIR}" DIRECTORY)
+get_filename_component(WINSDK_ROOT "${_WINSDK_BIN_DIR}" DIRECTORY)
+
+set(_WINSDK_INCLUDE_BASE "${WINSDK_ROOT}/Include/${_WINSDK_VERSION}")
+set(_WINSDK_LIB_BASE "${WINSDK_ROOT}/Lib/${_WINSDK_VERSION}")
+
+set(_REQUIRED_INCLUDE_DIRS
+    "${_MSVC_INCLUDE_DIR}"
+    "${_WINSDK_INCLUDE_BASE}/ucrt"
+    "${_WINSDK_INCLUDE_BASE}/shared"
+    "${_WINSDK_INCLUDE_BASE}/um"
+    "${_WINSDK_INCLUDE_BASE}/winrt"
+    "${_WINSDK_INCLUDE_BASE}/cppwinrt"
+)
+
+set(_REQUIRED_LIB_DIRS
+    "${_MSVC_LIB_DIR}"
+    "${_WINSDK_LIB_BASE}/ucrt/x64"
+    "${_WINSDK_LIB_BASE}/um/x64"
+)
+
+foreach(_dir IN LISTS _REQUIRED_INCLUDE_DIRS)
+    if(NOT EXISTS "${_dir}")
+        message(FATAL_ERROR "Include directory wajib tidak ditemukan: ${_dir}")
+    endif()
+endforeach()
+
+foreach(_dir IN LISTS _REQUIRED_LIB_DIRS)
+    if(NOT EXISTS "${_dir}")
+        message(FATAL_ERROR "Library directory wajib tidak ditemukan: ${_dir}")
+    endif()
+endforeach()
+
+foreach(_var CMAKE_C_STANDARD_INCLUDE_DIRECTORIES CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES)
+    set(_current ${${_var}})
+    list(APPEND _current ${_REQUIRED_INCLUDE_DIRS})
+    list(REMOVE_DUPLICATES _current)
+    set(${_var} "${_current}")
+endforeach()
+
+set(_LIBPATH_FLAGS "")
+foreach(_lib_dir IN LISTS _REQUIRED_LIB_DIRS)
+    set(_LIBPATH_FLAGS "${_LIBPATH_FLAGS} /LIBPATH:\"${_lib_dir}\"")
+endforeach()
+
+string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT "${_LIBPATH_FLAGS}")
+string(APPEND CMAKE_SHARED_LINKER_FLAGS_INIT "${_LIBPATH_FLAGS}")
+string(APPEND CMAKE_STATIC_LINKER_FLAGS_INIT "${_LIBPATH_FLAGS}")
+
 # Pakai MSVC untuk compile/link host tool
 set(CMAKE_C_COMPILER   "${CICERO_VCTOOLS_BIN}/cl.exe")
 set(CMAKE_CXX_COMPILER "${CICERO_VCTOOLS_BIN}/cl.exe")
