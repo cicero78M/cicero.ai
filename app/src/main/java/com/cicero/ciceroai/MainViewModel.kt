@@ -201,6 +201,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         runBlocking { settingsRepository.settingsFlow.first() }
     )
 
+    private val initialVulkanAvailability = controller.isVulkanAvailable()
+    private val initialGpuForcedOff = initialVulkanAvailability == false && latestSettingsConfig.nGpuLayers > 0
+    private val initialEffectiveGpuLayers = if (initialGpuForcedOff) 0 else latestSettingsConfig.nGpuLayers
+
     private val _uiState = MutableStateFlow(
         MainUiState(
             currentPage = MainPage.HOME,
@@ -231,10 +235,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             diagnosticsSetting = latestSettingsConfig.diagnostics,
             contextSize = latestSettingsConfig.contextSize,
             nGpuLayers = latestSettingsConfig.nGpuLayers,
+            effectiveGpuLayers = initialEffectiveGpuLayers,
+            isGpuForcedOff = initialGpuForcedOff,
             batchSize = latestSettingsConfig.batchSize,
             temperature = latestSettingsConfig.temperature,
             topP = latestSettingsConfig.topP,
-            isVulkanAvailable = controller.isVulkanAvailable()
+            isVulkanAvailable = initialVulkanAvailability
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -258,6 +264,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             settingsRepository.settingsFlow.collect { config ->
                 val sanitizedConfig = sanitizeConfig(config)
                 latestSettingsConfig = sanitizedConfig
+                val currentVulkanAvailability = _uiState.value.isVulkanAvailable
+                val isGpuForcedOff = currentVulkanAvailability == false && sanitizedConfig.nGpuLayers > 0
+                val effectiveGpuLayers = if (isGpuForcedOff) 0 else sanitizedConfig.nGpuLayers
                 _uiState.update { state ->
                     state.copy(
                         selectedPreset = sanitizedConfig.preset,
@@ -272,6 +281,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         diagnosticsSetting = sanitizedConfig.diagnostics,
                         contextSize = sanitizedConfig.contextSize,
                         nGpuLayers = sanitizedConfig.nGpuLayers,
+                        effectiveGpuLayers = effectiveGpuLayers,
+                        isGpuForcedOff = isGpuForcedOff,
                         batchSize = sanitizedConfig.batchSize,
                         temperature = sanitizedConfig.temperature,
                         topP = sanitizedConfig.topP
@@ -624,7 +635,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ensureCustomPreset()
         latestSettingsConfig = latestSettingsConfig.copy(nGpuLayers = value)
         viewModelScope.launch { settingsRepository.updateGpuLayers(value) }
-        _uiState.update { state -> state.copy(nGpuLayers = value) }
+        val currentVulkanAvailability = _uiState.value.isVulkanAvailable
+        val isGpuForcedOff = currentVulkanAvailability == false && value > 0
+        val effectiveGpuLayers = if (currentVulkanAvailability == false) 0 else value
+        _uiState.update { state ->
+            state.copy(
+                nGpuLayers = value,
+                effectiveGpuLayers = effectiveGpuLayers,
+                isGpuForcedOff = isGpuForcedOff
+            )
+        }
     }
 
     fun onBatchSizeChanged(value: Int) {
@@ -787,20 +807,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     fallbackThreads = threads,
                     fallbackContext = latestSettingsConfig.contextSize
                 )
+                val currentVulkanAvailability = _uiState.value.isVulkanAvailable
+                val safeGpuLayers = if (currentVulkanAvailability == false) {
+                    0
+                } else {
+                    latestSettingsConfig.nGpuLayers
+                }
+                val isGpuForcedOff = currentVulkanAvailability == false && latestSettingsConfig.nGpuLayers > 0
+                if (isGpuForcedOff) {
+                    appendLog(context.getString(R.string.log_vulkan_forced_cpu))
+                }
                 val runtimeConfig = baseRuntimeConfig.copy(
                     contextSize = latestSettingsConfig.contextSize,
                     batchSize = latestSettingsConfig.batchSize.takeIf { it > 0 },
-                    nGpuLayers = latestSettingsConfig.nGpuLayers
+                    nGpuLayers = safeGpuLayers
                 ).sanitized()
                 controller.prepareSession(
                     modelFile = file,
                     runtimeConfig = runtimeConfig
                 )
+                val readyStatus = if (isGpuForcedOff) {
+                    context.getString(R.string.model_status_ready_gpu_fallback, file.name)
+                } else {
+                    context.getString(R.string.model_status_ready, file.name)
+                }
                 _uiState.update { state ->
                     state.copy(
-                        modelStatus = context.getString(R.string.model_status_ready, file.name),
+                        modelStatus = readyStatus,
                         isRunButtonEnabled = true,
-                        outputText = context.getString(R.string.inference_placeholder)
+                        outputText = context.getString(R.string.inference_placeholder),
+                        effectiveGpuLayers = safeGpuLayers,
+                        isGpuForcedOff = isGpuForcedOff
                     )
                 }
             } catch (error: CancellationException) {

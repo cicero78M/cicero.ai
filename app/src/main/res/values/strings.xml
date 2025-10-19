@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Cicero.AI</string>
     <string name="model_status_ready">Model %1$s siap digunakan</string>
+    <string name="model_status_ready_gpu_fallback">Model %1$s siap digunakan (GPU dinonaktifkan)</string>
     <string name="model_status_loading">Menyiapkan model %1$s…</string>
     <string name="model_status_download_prompt">Model belum tersedia. Pilih dari daftar standar atau masukkan tautan unduhan untuk memulai.</string>
     <string name="model_status_downloading">Mengunduh model…</string>
@@ -25,6 +26,7 @@
     <string name="log_inference_prompt_empty">Prompt kosong. Isi prompt terlebih dahulu sebelum menjalankan inferensi.</string>
     <string name="log_inference_started">Memulai proses inferensi.</string>
     <string name="log_inference_preparing_prompt">Membersihkan dan menyiapkan prompt.</string>
+    <string name="log_vulkan_forced_cpu">Vulkan backend tidak tersedia; inference akan berjalan di CPU (n_gpu_layers=0).</string>
     <string name="log_inference_requesting_completion">Mengirim permintaan ke model (meminta %1$d token baru, sisa %2$d dari %3$d token konteks).</string>
     <string name="log_inference_progress">Token dihasilkan: "%1$s"</string>
     <string name="log_inference_success">Model selesai menghasilkan respons.</string>
@@ -107,6 +109,7 @@
     <string name="settings_top_p_label">Top-p</string>
     <string name="settings_context_value_placeholder">2048 token</string>
     <string name="settings_gpu_layers_value_placeholder">2 lapisan</string>
+    <string name="settings_gpu_layers_forced_off">GPU dinonaktifkan (Vulkan tidak tersedia)</string>
     <string name="settings_batch_value_placeholder">16</string>
     <string name="settings_temperature_value_placeholder">0.70</string>
     <string name="settings_top_p_value_placeholder">0.90</string>
