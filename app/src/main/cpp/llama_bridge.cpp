@@ -670,7 +670,8 @@ std::string runCompletion(LlamaSession* session,
         }
         using ChainAddReturn = std::invoke_result_t<decltype(&llama_sampler_chain_add), llama_sampler*, llama_sampler*>;
         static_assert(std::is_same_v<ChainAddReturn, bool> || std::is_same_v<ChainAddReturn, void>,
-                "llama_sampler_chain_add return type must be bool or void");
+                "llama_"
+                "sampler_chain_add return type must be bool or void");
 
         const bool added = [&]() {
             if constexpr (std::is_same_v<ChainAddReturn, bool>) {
