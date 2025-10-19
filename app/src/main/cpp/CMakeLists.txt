@@ -125,6 +125,25 @@ if (CICERO_ENABLE_VULKAN)
     set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
     set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
     set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
+
+    # ====== Propagasi path header ke FindVulkan ======
+    set(_VULKAN_ALL_INCLUDES)
+    foreach(_vk_inc IN LISTS _VULKAN_HEADERS_INC _VULKAN_HPP_INC1 _VULKAN_HPP_INC2)
+        if (DEFINED _vk_inc AND EXISTS "${_vk_inc}")
+            list(APPEND _VULKAN_ALL_INCLUDES "${_vk_inc}")
+        endif()
+    endforeach()
+
+    if (_VULKAN_ALL_INCLUDES)
+        list(REMOVE_DUPLICATES _VULKAN_ALL_INCLUDES)
+        # Simpan di cache supaya FindVulkan milik ggml bisa langsung memakai path yang lengkap.
+        set(Vulkan_INCLUDE_DIRS "${_VULKAN_ALL_INCLUDES}" CACHE STRING
+                "Aggregated Vulkan include directories" FORCE)
+        # Beberapa FindVulkan.cmake masih membaca variabel singular ini.
+        list(GET _VULKAN_ALL_INCLUDES 0 _VULKAN_PRIMARY_INCLUDE)
+        set(Vulkan_INCLUDE_DIR "${_VULKAN_PRIMARY_INCLUDE}" CACHE PATH
+                "Primary Vulkan include directory" FORCE)
+    endif()
 endif()
 
 # ==== Ambil llama.cpp (GGML) ====
