@@ -100,16 +100,30 @@ endif()
 message(STATUS "CICERO_ENABLE_VULKAN = ${CICERO_ENABLE_VULKAN}")
 message(STATUS "GGML_VULKAN          = ${GGML_VULKAN}")
 
-# ==== Ambil Vulkan-Hpp ====
+# ==== Ambil Vulkan headers tanpa menambah subdirectory ====
 FetchContent_Declare(
-        vulkan_hpp
-        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Hpp.git
-        GIT_TAG v1.3.268
-        GIT_SHALLOW TRUE
-        GIT_SUBMODULES ""
-        GIT_SUBMODULES_RECURSE FALSE
+        VulkanHeaders
+        URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.296.tar.gz
 )
-FetchContent_MakeAvailable(vulkan_hpp)
+
+FetchContent_Declare(
+        VulkanHpp
+        URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.296.tar.gz
+)
+
+FetchContent_GetProperties(VulkanHeaders)
+if (NOT VulkanHeaders_POPULATED)
+    FetchContent_Populate(VulkanHeaders)
+endif()
+
+FetchContent_GetProperties(VulkanHpp)
+if (NOT VulkanHpp_POPULATED)
+    FetchContent_Populate(VulkanHpp)
+endif()
+
+set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
+set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
+set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
 
 # ==== Ambil llama.cpp (GGML) ====
 FetchContent_Declare(
@@ -161,6 +175,8 @@ endif()
 target_include_directories(
         cicero_llama
         PRIVATE
-        ${vulkan_hpp_SOURCE_DIR}/include
+        ${_VULKAN_HEADERS_INC}
+        ${_VULKAN_HPP_INC1}
+        ${_VULKAN_HPP_INC2}
         ${llama_cpp_SOURCE_DIR}/include
 )
