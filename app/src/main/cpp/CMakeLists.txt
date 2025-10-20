@@ -130,10 +130,23 @@ if (CICERO_ENABLE_VULKAN)
                 "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Headers.")
     endif()
 
-    set(_cicero_vulkanhpp_header "${VulkanHpp_SOURCE_DIR}/include/vulkan/vulkan.hpp")
-    if (NOT EXISTS "${_cicero_vulkanhpp_header}")
+    set(_cicero_vulkanhpp_header)
+    set(_cicero_vulkanhpp_candidates
+            "${VulkanHpp_SOURCE_DIR}/include/vulkan/vulkan.hpp"
+            "${VulkanHpp_SOURCE_DIR}/vulkan/vulkan.hpp"
+    )
+    foreach(_cicero_vulkanhpp_candidate IN LISTS _cicero_vulkanhpp_candidates)
+        if (EXISTS "${_cicero_vulkanhpp_candidate}")
+            set(_cicero_vulkanhpp_header "${_cicero_vulkanhpp_candidate}")
+            break()
+        endif()
+    endforeach()
+
+    if (NOT _cicero_vulkanhpp_header)
+        list(JOIN _cicero_vulkanhpp_candidates "\n        " _cicero_vulkanhpp_expected)
         message(FATAL_ERROR
-                "Vulkan-Hpp tidak lengkap; header ${_cicero_vulkanhpp_header} tidak ditemukan. "
+                "Vulkan-Hpp tidak lengkap; header vulkan.hpp tidak ditemukan pada lokasi yang diharapkan:\n"
+                "        ${_cicero_vulkanhpp_expected}\n"
                 "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Hpp.")
     endif()
 
