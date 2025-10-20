@@ -101,39 +101,64 @@ message(STATUS "CICERO_ENABLE_VULKAN = ${CICERO_ENABLE_VULKAN}")
 message(STATUS "GGML_VULKAN          = ${GGML_VULKAN}")
 
 # ==== Ambil Vulkan headers tanpa menambah subdirectory ====
-if (CICERO_ENABLE_VULKAN)
+set(_CICERO_VULKAN_HEADERS_TAG v1.3.296)
+set(_CICERO_VULKAN_HPP_TAG     v1.3.296)
+
+if (CICERO_ENABLE_VULKAN OR GGML_VULKAN)
     FetchContent_Declare(
             VulkanHeaders
-            URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.297.tar.gz
+            GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+            GIT_TAG ${_CICERO_VULKAN_HEADERS_TAG}
     )
-
-    FetchContent_Declare(
-            VulkanHpp
-            URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.297.tar.gz
-    )
-
     FetchContent_GetProperties(VulkanHeaders)
     if (NOT VulkanHeaders_POPULATED)
         FetchContent_Populate(VulkanHeaders)
         FetchContent_GetProperties(VulkanHeaders)
     endif()
 
+    if (DEFINED VulkanHeaders_SOURCE_DIR)
+        set(VULKAN_HEADERS_DIR "${VulkanHeaders_SOURCE_DIR}")
+    elseif(DEFINED vulkanheaders_SOURCE_DIR)
+        set(VULKAN_HEADERS_DIR "${vulkanheaders_SOURCE_DIR}")
+    else()
+        set(VULKAN_HEADERS_DIR "")
+    endif()
+
+    if (VULKAN_HEADERS_DIR)
+        include_directories("${VULKAN_HEADERS_DIR}/include")
+    endif()
+
+    FetchContent_Declare(
+            VulkanHpp
+            GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Hpp.git
+            GIT_TAG ${_CICERO_VULKAN_HPP_TAG}
+    )
     FetchContent_GetProperties(VulkanHpp)
     if (NOT VulkanHpp_POPULATED)
         FetchContent_Populate(VulkanHpp)
         FetchContent_GetProperties(VulkanHpp)
     endif()
 
-    if (NOT EXISTS "${VulkanHeaders_SOURCE_DIR}")
-        message(FATAL_ERROR
-                "VulkanHeaders source directory hilang: ${VulkanHeaders_SOURCE_DIR}. "
-                "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Headers.")
+    if (DEFINED VulkanHpp_SOURCE_DIR)
+        set(VULKAN_HPP_DIR "${VulkanHpp_SOURCE_DIR}")
+    elseif(DEFINED vulkanhpp_SOURCE_DIR)
+        set(VULKAN_HPP_DIR "${vulkanhpp_SOURCE_DIR}")
+    else()
+        set(VULKAN_HPP_DIR "")
+    endif()
+
+    if (VULKAN_HPP_DIR)
+        include_directories("${VULKAN_HPP_DIR}")
+    endif()
+
+    if (NOT VULKAN_HEADERS_DIR OR NOT EXISTS "${VULKAN_HEADERS_DIR}/include/vulkan/vulkan_core.h")
+        message(FATAL_ERROR "VulkanHeaders source directory hilang: ${VULKAN_HEADERS_DIR}")
     endif()
 
     set(_cicero_vulkanhpp_header)
     set(_cicero_vulkanhpp_candidates
-            "${VulkanHpp_SOURCE_DIR}/include/vulkan/vulkan.hpp"
-            "${VulkanHpp_SOURCE_DIR}/vulkan/vulkan.hpp"
+            "${VULKAN_HPP_DIR}/include/vulkan/vulkan.hpp"
+            "${VULKAN_HPP_DIR}/vulkan/vulkan.hpp"
     )
     foreach(_cicero_vulkanhpp_candidate IN LISTS _cicero_vulkanhpp_candidates)
         if (EXISTS "${_cicero_vulkanhpp_candidate}")
@@ -150,9 +175,9 @@ if (CICERO_ENABLE_VULKAN)
                 "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Hpp.")
     endif()
 
-    set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
-    set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
-    set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
+    set(_VULKAN_HEADERS_INC "${VULKAN_HEADERS_DIR}/include")
+    set(_VULKAN_HPP_INC1    "${VULKAN_HPP_DIR}")
+    set(_VULKAN_HPP_INC2    "${VULKAN_HPP_DIR}/include")
 
     # ====== Propagasi path header ke FindVulkan ======
     set(_VULKAN_ALL_INCLUDES)
