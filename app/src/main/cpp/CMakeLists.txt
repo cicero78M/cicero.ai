@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(cicero_llama LANGUAGES C CXX)
 
+# Batasi build Android hanya ke ABI modern yang didukung NDK
+set(ANDROID_ABI arm64-v8a CACHE STRING "" FORCE)
+
 # ====== Sanity: tolak path dengan ';' (pecah manifest mt.exe) ======
 string(FIND "${CMAKE_SOURCE_DIR}" ";" _src_has_sc)
 string(FIND "${CMAKE_BINARY_DIR}" ";" _bin_has_sc)
@@ -101,62 +104,37 @@ message(STATUS "CICERO_ENABLE_VULKAN = ${CICERO_ENABLE_VULKAN}")
 message(STATUS "GGML_VULKAN          = ${GGML_VULKAN}")
 
 # ==== Ambil Vulkan headers tanpa menambah subdirectory ====
-if (CICERO_ENABLE_VULKAN)
+set(_CICERO_VULKAN_HEADERS_TAG main)
+
+if (CICERO_ENABLE_VULKAN OR GGML_VULKAN)
     FetchContent_Declare(
             VulkanHeaders
-            URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.297.tar.gz
+            GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+            GIT_TAG ${_CICERO_VULKAN_HEADERS_TAG}
     )
+    FetchContent_MakeAvailable(VulkanHeaders)
 
-    FetchContent_Declare(
-            VulkanHpp
-            URL https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.3.297.tar.gz
-    )
-
-    FetchContent_GetProperties(VulkanHeaders)
-    if (NOT VulkanHeaders_POPULATED)
-        FetchContent_Populate(VulkanHeaders)
-        FetchContent_GetProperties(VulkanHeaders)
+    if (DEFINED vulkanheaders_SOURCE_DIR)
+        set(VULKAN_HEADERS_DIR "${vulkanheaders_SOURCE_DIR}")
+    elseif(DEFINED VulkanHeaders_SOURCE_DIR)
+        set(VULKAN_HEADERS_DIR "${VulkanHeaders_SOURCE_DIR}")
+    else()
+        set(VULKAN_HEADERS_DIR "")
     endif()
 
-    FetchContent_GetProperties(VulkanHpp)
-    if (NOT VulkanHpp_POPULATED)
-        FetchContent_Populate(VulkanHpp)
-        FetchContent_GetProperties(VulkanHpp)
+    if (VULKAN_HEADERS_DIR)
+        include_directories("${VULKAN_HEADERS_DIR}/include")
     endif()
 
-    if (NOT EXISTS "${VulkanHeaders_SOURCE_DIR}")
-        message(FATAL_ERROR
-                "VulkanHeaders source directory hilang: ${VulkanHeaders_SOURCE_DIR}. "
-                "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Headers.")
+    if (NOT VULKAN_HEADERS_DIR OR NOT EXISTS "${VULKAN_HEADERS_DIR}/include/vulkan/vulkan_core.h")
+        message(FATAL_ERROR "VulkanHeaders source directory hilang: ${VULKAN_HEADERS_DIR}")
     endif()
 
-    set(_cicero_vulkanhpp_header)
-    set(_cicero_vulkanhpp_candidates
-            "${VulkanHpp_SOURCE_DIR}/include/vulkan/vulkan.hpp"
-            "${VulkanHpp_SOURCE_DIR}/vulkan/vulkan.hpp"
-    )
-    foreach(_cicero_vulkanhpp_candidate IN LISTS _cicero_vulkanhpp_candidates)
-        if (EXISTS "${_cicero_vulkanhpp_candidate}")
-            set(_cicero_vulkanhpp_header "${_cicero_vulkanhpp_candidate}")
-            break()
-        endif()
-    endforeach()
-
-    if (NOT _cicero_vulkanhpp_header)
-        list(JOIN _cicero_vulkanhpp_candidates "\n        " _cicero_vulkanhpp_expected)
-        message(FATAL_ERROR
-                "Vulkan-Hpp tidak lengkap; header vulkan.hpp tidak ditemukan pada lokasi yang diharapkan:\n"
-                "        ${_cicero_vulkanhpp_expected}\n"
-                "Matikan CICERO_ENABLE_VULKAN atau perbaiki unduhan Vulkan-Hpp.")
-    endif()
-
-    set(_VULKAN_HEADERS_INC "${VulkanHeaders_SOURCE_DIR}/include")
-    set(_VULKAN_HPP_INC1    "${VulkanHpp_SOURCE_DIR}")
-    set(_VULKAN_HPP_INC2    "${VulkanHpp_SOURCE_DIR}/include")
+    set(_VULKAN_HEADERS_INC "${VULKAN_HEADERS_DIR}/include")
 
     # ====== Propagasi path header ke FindVulkan ======
     set(_VULKAN_ALL_INCLUDES)
-    foreach(_vk_inc IN LISTS _VULKAN_HEADERS_INC _VULKAN_HPP_INC1 _VULKAN_HPP_INC2)
+    foreach(_vk_inc IN LISTS _VULKAN_HEADERS_INC)
         if (DEFINED _vk_inc AND EXISTS "${_vk_inc}")
             list(APPEND _VULKAN_ALL_INCLUDES "${_vk_inc}")
         endif()
@@ -190,7 +168,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(llama_cpp)
 
 if (CICERO_ENABLE_VULKAN)
-    # Pastikan target ggml-vulkan mendapatkan header Vulkan-Hpp yang kami unduh.
+    # Pastikan target ggml-vulkan mendapatkan Vulkan headers yang kami unduh.
     # Target ini didefinisikan oleh llama.cpp saat GGML_VULKAN=ON.
     set(_cicero_vk_include_dirs)
     foreach(_vk_inc IN LISTS _VULKAN_ALL_INCLUDES)
@@ -247,7 +225,5 @@ target_include_directories(
         cicero_llama
         PRIVATE
         $<$<BOOL:${CICERO_ENABLE_VULKAN}>:${_VULKAN_HEADERS_INC}>
-        $<$<BOOL:${CICERO_ENABLE_VULKAN}>:${_VULKAN_HPP_INC1}>
-        $<$<BOOL:${CICERO_ENABLE_VULKAN}>:${_VULKAN_HPP_INC2}>
         ${llama_cpp_SOURCE_DIR}/include
 )

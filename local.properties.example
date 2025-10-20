@@ -1,0 +1,3 @@
+# Copy this file to `local.properties` and adjust the path below so Gradle can
+# locate your Android SDK installation.
+sdk.dir=/absolute/path/to/your/Android/Sdk

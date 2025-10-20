@@ -18,13 +18,28 @@ android {
                 // Aktifkan backend Vulkan di ggml/llama.cpp
                 arguments += listOf(
                     "-DCICERO_ENABLE_VULKAN=ON",
-                    "-DGGML_VULKAN=ON"
+                    "-DGGML_VULKAN=ON",
+                    "-DGGML_VULKAN_GLSLC_EXECUTABLE=/usr/bin/glslc",
+                    // Batasi CMake hanya membangkitkan ABI yang masih didukung
+                    "-DANDROID_ABI=arm64-v8a"
                 )
             }
         }
 
         ndk {
             abiFilters += "arm64-v8a"
+        }
+    }
+
+    // Paksa Gradle mengeluarkan APK release langsung, termasuk varian universal
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = true
+            // Atau batasi ke satu ABI saja
+            // include("arm64-v8a")
         }
     }
 
@@ -93,9 +108,9 @@ dependencies {
 }
 
 /**
- * ====== PATCH host-toolchain untuk paksa MSVC di vulkan-shaders-gen ======
- * Pastikan kamu sudah membuat file: app/cmake/msvc-host.cmake
- * (isinya sesuai yang sudah kuberikan sebelumnya).
+ * ====== PATCH host-toolchain untuk konfigurasi toolchain host Vulkan shaders ======
+ * Pastikan kamu sudah membuat file: app/cmake/host-toolchain.cmake
+ * beserta dependensinya (msvc-host.cmake, posix-host.cmake).
  */
 fun findHostToolchainFile(root: File): File? =
     root.walkTopDown().maxDepth(6).firstOrNull {
@@ -115,18 +130,18 @@ tasks.register("patchHostToolchain") {
             return@doLast
         }
 
-        val msvcTc = file("cmake/msvc-host.cmake").absoluteFile
-        require(msvcTc.exists()) {
-            "Missing app/cmake/msvc-host.cmake — buat dulu sesuai instruksi."
+        val hostTcTemplate = file("cmake/host-toolchain.cmake").absoluteFile
+        require(hostTcTemplate.exists()) {
+            "Missing app/cmake/host-toolchain.cmake — buat dulu sesuai instruksi."
         }
 
-        hostTc.writeText(
-            """
-            # Patched by Gradle: redirect to MSVC host toolchain
-            include("${msvcTc.toString().replace("\\", "/")}")
-            """.trimIndent()
-        )
-        println("Patched host toolchain: ${hostTc.absolutePath}")
+        val redirect = """
+            # Patched by Gradle: redirect to shared host toolchain configuration
+            include("${hostTcTemplate.toString().replace("\\", "/")}")
+        """.trimIndent()
+
+        hostTc.writeText(redirect)
+        println("Patched host toolchain: ${hostTc.absolutePath} -> ${hostTcTemplate.absolutePath}")
     }
 }
 
