@@ -144,12 +144,20 @@ foreach(_dir IN LISTS _REQUIRED_LIB_DIRS)
     endif()
 endforeach()
 
-foreach(_var CMAKE_C_STANDARD_INCLUDE_DIRECTORIES CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES)
-    set(_current ${${_var}})
-    list(APPEND _current ${_REQUIRED_INCLUDE_DIRS})
-    list(REMOVE_DUPLICATES _current)
-    set(${_var} "${_current}")
-endforeach()
+# Ensure the discovered include directories are part of the INCLUDE search
+# path that cl.exe consumes as well as CMake's generic include lookup list.
+set(_combined_include_dirs ${_REQUIRED_INCLUDE_DIRS})
+if(DEFINED ENV{INCLUDE} AND NOT "$ENV{INCLUDE}" STREQUAL "")
+    list(APPEND _combined_include_dirs $ENV{INCLUDE})
+endif()
+list(REMOVE_DUPLICATES _combined_include_dirs)
+list(JOIN _combined_include_dirs ";" _include_env_value)
+set(ENV{INCLUDE} "${_include_env_value}")
+
+set(_cmake_include_path ${CMAKE_INCLUDE_PATH})
+list(APPEND _cmake_include_path ${_REQUIRED_INCLUDE_DIRS})
+list(REMOVE_DUPLICATES _cmake_include_path)
+set(CMAKE_INCLUDE_PATH "${_cmake_include_path}")
 
 set(_LIBPATH_FLAGS "")
 foreach(_lib_dir IN LISTS _REQUIRED_LIB_DIRS)
