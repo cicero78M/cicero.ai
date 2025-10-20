@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -81,6 +82,19 @@ class MainActivity : AppCompatActivity() {
 
         binding.outputView.movementMethod = ScrollingMovementMethod.getInstance()
         binding.outputView.isVerticalScrollBarEnabled = true
+        binding.outputView.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    if (view.canScrollVertically(-1) || view.canScrollVertically(1)) {
+                        view.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    view.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+            false
+        }
 
         setSupportActionBar(binding.topAppBar)
 
