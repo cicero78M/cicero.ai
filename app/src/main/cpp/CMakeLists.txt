@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(cicero_llama LANGUAGES C CXX)
 
+# Batasi build Android hanya ke ABI modern yang didukung NDK
+set(ANDROID_ABI arm64-v8a CACHE STRING "" FORCE)
+
 # ====== Sanity: tolak path dengan ';' (pecah manifest mt.exe) ======
 string(FIND "${CMAKE_SOURCE_DIR}" ";" _src_has_sc)
 string(FIND "${CMAKE_BINARY_DIR}" ";" _bin_has_sc)

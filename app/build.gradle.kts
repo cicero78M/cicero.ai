@@ -19,7 +19,9 @@ android {
                 arguments += listOf(
                     "-DCICERO_ENABLE_VULKAN=ON",
                     "-DGGML_VULKAN=ON",
-                    "-DGGML_VULKAN_GLSLC_EXECUTABLE=/usr/bin/glslc"
+                    "-DGGML_VULKAN_GLSLC_EXECUTABLE=/usr/bin/glslc",
+                    // Batasi CMake hanya membangkitkan ABI yang masih didukung
+                    "-DANDROID_ABI=arm64-v8a"
                 )
             }
         }
@@ -33,6 +35,8 @@ android {
     splits {
         abi {
             isEnable = true
+            reset()
+            include("arm64-v8a")
             isUniversalApk = true
             // Atau batasi ke satu ABI saja
             // include("arm64-v8a")
