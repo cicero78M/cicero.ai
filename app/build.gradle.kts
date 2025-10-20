@@ -18,7 +18,8 @@ android {
                 // Aktifkan backend Vulkan di ggml/llama.cpp
                 arguments += listOf(
                     "-DCICERO_ENABLE_VULKAN=ON",
-                    "-DGGML_VULKAN=ON"
+                    "-DGGML_VULKAN=ON",
+                    "-DGGML_VULKAN_GLSLC_EXECUTABLE=/usr/bin/glslc"
                 )
             }
         }
