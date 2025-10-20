@@ -1,6 +1,5 @@
-# app/cmake/host-toolchain.cmake
 if (WIN32)
-  include("${CMAKE_CURRENT_LIST_DIR}/msvc-host.cmake")
+  include(${CMAKE_CURRENT_LIST_DIR}/msvc-host.cmake)
 else()
-  include("${CMAKE_CURRENT_LIST_DIR}/posix-host.cmake")
+  include(${CMAKE_CURRENT_LIST_DIR}/posix-host.cmake)
 endif()
