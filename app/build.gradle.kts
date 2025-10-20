@@ -29,6 +29,16 @@ android {
         }
     }
 
+    // Paksa Gradle mengeluarkan APK release langsung, termasuk varian universal
+    splits {
+        abi {
+            isEnable = true
+            isUniversalApk = true
+            // Atau batasi ke satu ABI saja
+            // include("arm64-v8a")
+        }
+    }
+
     // Path & versi CMake (jangan taruh arguments di sini)
     externalNativeBuild {
         cmake {
