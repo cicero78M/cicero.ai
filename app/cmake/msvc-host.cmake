@@ -32,9 +32,12 @@ set(ENV{LIB}     "${_MSVC_LIB};${_UCRT_LIB};${_UM_LIB}")
 set(ENV{WindowsSDKDir} "${_WINSDK}/")
 set(ENV{WindowsSDKVersion} "${_SDKVER}/")
 
+# Paksa /I langsung di command line
+set(_INC_OPTS "/I\"${_MSVC_INC}\" /I\"${_UCRT_INC}\" /I\"${_UM_INC}\" /I\"${_SHARED_INC}\"")
+
 # Tetap tambah flags via CMake (pelengkap)
-set(CMAKE_C_FLAGS_INIT   "/MD")
-set(CMAKE_CXX_FLAGS_INIT "/MD /std:c++17")
+set(CMAKE_C_FLAGS_INIT   "/MD ${_INC_OPTS}")
+set(CMAKE_CXX_FLAGS_INIT "/MD /std:c++17 ${_INC_OPTS}")
 set(CMAKE_EXE_LINKER_FLAGS_INIT    "")
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "")
 
@@ -42,6 +45,8 @@ set(CMAKE_C_FLAGS             "${CMAKE_C_FLAGS_INIT}"             CACHE STRING "
 set(CMAKE_CXX_FLAGS           "${CMAKE_CXX_FLAGS_INIT}"           CACHE STRING "" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS_INIT}"    CACHE STRING "" FORCE)
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_INIT}" CACHE STRING "" FORCE)
+
+message(STATUS "MSVC /I injected: ${_INC_OPTS}")
 
 # Hindari try-compile bikin exe (cukup lib)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
