@@ -44,7 +44,21 @@ if(NOT _cicero_msvc_bin_dir AND DEFINED ENV{VCINSTALLDIR})
 endif()
 
 if(NOT _cicero_msvc_bin_dir)
-  set(_cicero_vswhere "$ENV{ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe")
+  # ProgramFiles(x86) mengandung karakter "(" dan ")" yang tidak valid sebagai nama
+  # variabel CMake, sehingga perlu di-escape saat diakses.
+  if(DEFINED ENV{ProgramFiles\(x86\)})
+    set(_cicero_program_files_x86 "$ENV{ProgramFiles\(x86\)}")
+  elseif(DEFINED ENV{ProgramFiles})
+    set(_cicero_program_files_x86 "$ENV{ProgramFiles}")
+  else()
+    set(_cicero_program_files_x86 "")
+  endif()
+
+  if(_cicero_program_files_x86)
+    set(_cicero_vswhere "${_cicero_program_files_x86}/Microsoft Visual Studio/Installer/vswhere.exe")
+  else()
+    set(_cicero_vswhere "")
+  endif()
   if(EXISTS "${_cicero_vswhere}")
     execute_process(
       COMMAND "${_cicero_vswhere}" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
